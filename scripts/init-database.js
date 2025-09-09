@@ -2,6 +2,9 @@ const { createClient } = require('@supabase/supabase-js')
 const fs = require('fs')
 const path = require('path')
 
+// 加载环境变量
+require('dotenv').config({ path: path.join(__dirname, '../.env.local') })
+
 // 从环境变量读取配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
