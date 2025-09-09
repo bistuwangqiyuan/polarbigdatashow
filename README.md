@@ -1,41 +1,183 @@
-# Next.js on Netlify Platform Starter
+# 光伏电站智能监控中心
 
-[Live Demo](https://nextjs-platform-starter.netlify.app/)
+一个现代化的光伏电站数据可视化大屏系统，专为光伏电站运维中心设计，提供实时监控、数据分析和告警管理功能。
 
-A modern starter based on Next.js 14 (App Router), Tailwind, and [Netlify Core Primitives](https://docs.netlify.com/core/overview/#develop) (Edge Functions, Image CDN, Blob Store).
+## 功能特点
 
-In this site, Netlify Core Primitives are used both implictly for running Next.js features (e.g. Route Handlers, image optimization via `next/image`, and more) and also explicitly by the user code.
+### 核心功能
+- **实时数据展示**：显示光伏电站的实时发电功率、累计发电量、收益和CO₂减排量
+- **设备状态监控**：实时监控逆变器运行状态、温度、效率等关键参数
+- **数据可视化**：使用ECharts实现发电趋势图、效率对比图、电站分布图等
+- **告警管理**：实时显示系统告警信息，支持不同级别的告警展示
+- **自动数据更新**：支持WebSocket和轮询两种方式实现数据实时更新
 
-Implicit usage means you're using any Next.js functionality and everything "just works" when deployed - all the plumbing is done for you. Explicit usage is framework-agnostic and typically provides more features than what Next.js exposes.
+### 技术特点
+- **响应式设计**：完美适配大屏幕显示，支持不同尺寸的监控大屏
+- **动画效果**：使用Framer Motion实现流畅的过渡和动画效果
+- **工业化UI**：采用科技蓝配色方案，黑色背景配合发光效果，营造专业的工业化氛围
+- **模块化架构**：组件化设计，方便扩展和维护
 
-## Deploying to Netlify
+## 技术栈
 
-This site requires [Netlify Next Runtime v5](https://docs.netlify.com/frameworks/next-js/overview/) for full functionality. That version is now being gradually rolled out to all Netlify accounts.
+- **前端框架**：Next.js 15.5.2 + React 18.3.1
+- **UI样式**：TailwindCSS 4.0
+- **图表库**：ECharts 5.4.3 + echarts-for-react
+- **动画库**：Framer Motion 11.0
+- **数据库**：Supabase (PostgreSQL)
+- **实时通信**：Supabase Realtime + Socket.io
+- **部署平台**：Netlify
 
-After deploying via the button below, please visit the **Site Overview** page for your new site to check whether it is already using the v5 runtime. If not, you'll be prompted to opt-in to to v5.
+## 快速开始
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/netlify-templates/next-platform-starter)
+### 环境要求
+- Node.js 18.0 或更高版本
+- npm 或 yarn 包管理器
 
-## Developing Locally
+### 安装步骤
 
-1. Clone this repository, then run `npm install` in its root directory.
+1. **克隆项目**
+```bash
+git clone <repository-url>
+cd solar-dashboard
+```
 
-2. For the starter to have full functionality locally (e.g. edge functions, blob store), please ensure you have an up-to-date version of Netlify CLI. Run:
+2. **安装依赖**
+```bash
+npm install
+# 或
+yarn install
+```
+
+3. **配置环境变量**
+创建 `.env.local` 文件并添加以下配置：
+```env
+NEXT_PUBLIC_SUPABASE_URL=你的Supabase项目URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你的Supabase匿名密钥
+SUPABASE_SERVICE_ROLE_KEY=你的Supabase服务角色密钥
+```
+
+4. **初始化数据库**
+在Supabase控制台执行 `lib/supabase-init.sql` 中的SQL脚本来创建必要的数据表。
+
+5. **启动开发服务器**
+```bash
+npm run dev
+# 或
+yarn dev
+```
+
+访问 http://localhost:3000 查看大屏效果。
+
+## 项目结构
 
 ```
-npm install netlify-cli@latest -g
+├── app/                      # Next.js 应用目录
+│   ├── page.jsx             # 大屏主页面
+│   └── layout.jsx           # 根布局
+├── components/              # React组件
+│   ├── dashboard/           # 大屏专用组件
+│   │   ├── DashboardLayout.jsx    # 大屏布局
+│   │   ├── DashboardGrid.jsx      # 网格系统
+│   │   ├── StatCard.jsx           # 数据卡片
+│   │   ├── DeviceStatus.jsx       # 设备状态
+│   │   └── AlertPanel.jsx         # 告警面板
+│   └── charts/             # 图表组件
+│       ├── PowerTrendChart.jsx    # 发电趋势图
+│       ├── EfficiencyChart.jsx    # 效率对比图
+│       └── StationMap.jsx         # 电站分布图
+├── hooks/                   # 自定义Hooks
+│   └── useRealtimeData.js  # 实时数据Hook
+├── lib/                     # 工具库
+│   ├── supabase.js         # Supabase客户端
+│   ├── dataService.js      # 数据服务
+│   └── supabase-init.sql   # 数据库初始化脚本
+├── styles/                  # 样式文件
+│   └── globals.css         # 全局样式
+└── public/                  # 静态资源
 ```
 
-3. Link your local repository to the deployed Netlify site. This will ensure you're using the same runtime version for both local development and your deployed site.
+## 数据源配置
 
-```
-netlify link
-```
+### Supabase配置
+1. 登录Supabase控制台
+2. 创建新项目或使用现有项目
+3. 在SQL编辑器中执行 `lib/supabase-init.sql` 脚本
+4. 启用Realtime功能（已在脚本中配置）
+5. 复制项目URL和密钥到环境变量
 
-4. Then, run the Next.js development server via Netlify CLI:
+### 数据表结构
+- `solar_stations`：光伏电站基础信息
+- `power_generation_realtime`：实时发电数据
+- `power_generation_summary`：累计统计数据
+- `inverters`：逆变器状态数据
+- `alerts`：告警信息
 
-```
-netlify dev
-```
+### 模拟数据
+系统内置了模拟数据生成功能，会自动每10秒生成一次模拟数据用于演示。在生产环境中，请替换为真实的数据接口。
 
-If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
+## 部署指南
+
+### Netlify部署
+
+1. **连接Git仓库**
+   - 登录Netlify控制台
+   - 点击"New site from Git"
+   - 选择你的Git仓库
+
+2. **配置构建设置**
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+
+3. **设置环境变量**
+   在Netlify控制台的Site settings > Environment variables中添加：
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+
+4. **部署**
+   推送代码到Git仓库，Netlify会自动构建和部署。
+
+### 自定义域名
+在Netlify控制台的Domain settings中可以配置自定义域名。
+
+## 自定义开发
+
+### 添加新的数据卡片
+1. 在 `components/dashboard/` 创建新组件
+2. 使用 `StatCard` 组件作为基础
+3. 在主页面中引入并配置网格位置
+
+### 添加新的图表
+1. 在 `components/charts/` 创建新的图表组件
+2. 使用 `ReactECharts` 配置图表选项
+3. 在 `useRealtimeData` Hook中添加数据获取逻辑
+
+### 修改样式主题
+1. 编辑 `styles/globals.css` 中的CSS变量
+2. 主要颜色变量：
+   - `--color-primary`：主色调（科技蓝）
+   - `--color-success`：成功色（绿色）
+   - `--color-warning`：警告色（橙色）
+   - `--color-danger`：危险色（红色）
+
+## 性能优化
+
+- 使用React.memo优化组件重渲染
+- ECharts图表使用canvas渲染器
+- 数据更新采用增量更新策略
+- 图片和静态资源使用CDN加速
+
+## 注意事项
+
+1. **大屏适配**：系统设计基于1920x1080分辨率，其他分辨率会自动适配
+2. **浏览器兼容**：推荐使用Chrome、Edge等现代浏览器
+3. **数据安全**：生产环境请妥善保管数据库密钥，不要暴露在客户端代码中
+4. **性能监控**：建议配置Netlify Analytics监控系统性能
+
+## 许可证
+
+MIT License
+
+## 支持与反馈
+
+如有问题或建议，请提交Issue或Pull Request。
