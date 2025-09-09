@@ -56,24 +56,37 @@ export default async function Page() {
 }
 
 async function RandomWikiArticle() {
-    const randomWiki = await fetch(randomWikiUrl, {
-        next: { revalidate: revalidateTTL, tags: [tagName] }
-    });
+    try {
+        const randomWiki = await fetch(randomWikiUrl, {
+            next: { revalidate: revalidateTTL, tags: [tagName] }
+        });
 
-    const content = await randomWiki.json();
-    let extract = content.extract;
-    if (extract.length > maxExtractLength) {
-        extract = extract.slice(0, extract.slice(0, maxExtractLength).lastIndexOf(' ')) + ' [...]';
+        const content = await randomWiki.json();
+        let extract = content.extract;
+        if (extract.length > maxExtractLength) {
+            extract = extract.slice(0, extract.slice(0, maxExtractLength).lastIndexOf(' ')) + ' [...]';
+        }
+
+        return (
+            <Card className="max-w-2xl">
+                <h3 className="text-2xl text-neutral-900">{content.title}</h3>
+                <div className="text-lg font-bold">{content.description}</div>
+                <p className="italic">{extract}</p>
+                <a target="_blank" rel="noopener noreferrer" href={content.content_urls.desktop.page}>
+                    From Wikipedia
+                </a>
+            </Card>
+        );
+    } catch (error) {
+        return (
+            <Card className="max-w-2xl">
+                <h3 className="text-2xl text-neutral-900">示例文章</h3>
+                <div className="text-lg font-bold">这是一个示例文章</div>
+                <p className="italic">在构建时无法获取Wikipedia数据，这是正常的。部署后可以正常使用。</p>
+                <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org">
+                    From Wikipedia
+                </a>
+            </Card>
+        );
     }
-
-    return (
-        <Card className="max-w-2xl">
-            <h3 className="text-2xl text-neutral-900">{content.title}</h3>
-            <div className="text-lg font-bold">{content.description}</div>
-            <p className="italic">{extract}</p>
-            <a target="_blank" rel="noopener noreferrer" href={content.content_urls.desktop.page}>
-                From Wikipedia
-            </a>
-        </Card>
-    );
 }
