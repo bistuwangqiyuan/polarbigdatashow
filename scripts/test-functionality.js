@@ -1,5 +1,9 @@
 const { createClient } = require('@supabase/supabase-js')
 const fetch = require('node-fetch')
+const path = require('path')
+
+// 加载环境变量
+require('dotenv').config({ path: path.join(__dirname, '../.env.local') })
 
 // 配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zzyueuweeoakopuuwfau.supabase.co'
