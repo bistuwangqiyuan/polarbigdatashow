@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 
 export default function AlertPanel({ alerts = [] }) {
   const getSeverityClass = (severity) => {
@@ -65,7 +64,7 @@ export default function AlertPanel({ alerts = [] }) {
                   {getSeverityText(alert.severity)}
                 </span>
                 <span className="text-xs text-neutral-500">
-                  {format(new Date(alert.created_at), 'HH:mm:ss', { locale: zhCN })}
+                  {format(new Date(alert.created_at), 'HH:mm:ss')}
                 </span>
               </div>
               
