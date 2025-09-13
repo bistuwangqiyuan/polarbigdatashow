@@ -5,6 +5,7 @@ import {
   getInvertersStatus,
   getActiveAlerts,
   get24HourTrend,
+  getAllStations,
   subscribeToRealtimeUpdates,
   generateMockData
 } from '../lib/dataService'
@@ -16,6 +17,7 @@ export function useRealtimeData(refreshInterval = 5000) {
     inverters: [],
     alerts: [],
     trend: [],
+    stations: [],
     loading: true,
     error: null
   })
@@ -23,12 +25,13 @@ export function useRealtimeData(refreshInterval = 5000) {
   // 获取所有数据
   const fetchAllData = async () => {
     try {
-      const [realtime, summary, inverters, alerts, trend] = await Promise.all([
+      const [realtime, summary, inverters, alerts, trend, stations] = await Promise.all([
         getRealtimePowerData(),
         getTodaySummary(),
         getInvertersStatus(),
         getActiveAlerts(),
-        get24HourTrend()
+        get24HourTrend(),
+        getAllStations()
       ])
 
       setData({
@@ -37,6 +40,7 @@ export function useRealtimeData(refreshInterval = 5000) {
         inverters,
         alerts,
         trend,
+        stations,
         loading: false,
         error: null
       })
@@ -113,6 +117,17 @@ export function formatPowerData(data) {
     alerts: data.alerts,
 
     // 趋势数据
-    trend: data.trend
+    trend: data.trend,
+    
+    // 电站数据
+    stations: data.stations?.map(station => ({
+      id: station.id,
+      name: station.name,
+      longitude: station.longitude || 116.4,
+      latitude: station.latitude || 39.9,
+      capacity: station.capacity_mw || 0,
+      todayGeneration: data.summary?.total_energy_kwh || 0,
+      status: station.status || 'active'
+    })) || []
   }
 }

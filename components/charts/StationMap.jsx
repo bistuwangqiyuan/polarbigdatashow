@@ -1,9 +1,40 @@
 'use client'
 
 import ReactECharts from 'echarts-for-react'
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
+import * as echarts from 'echarts'
 
 export default function StationMap({ stations = [] }) {
+  const [mapRegistered, setMapRegistered] = useState(false)
+  
+  // 如果没有传入电站数据，使用默认数据
+  const defaultStations = [
+    { name: '北京站', longitude: 116.231204, latitude: 40.22066, capacity: 50, todayGeneration: 120, status: 'active' },
+    { name: '上海站', longitude: 121.544379, latitude: 31.221517, capacity: 80, todayGeneration: 180, status: 'active' },
+    { name: '深圳站', longitude: 113.930765, latitude: 22.531544, capacity: 65, todayGeneration: 150, status: 'active' },
+    { name: '广州站', longitude: 113.364710, latitude: 23.125178, capacity: 45, todayGeneration: 100, status: 'active' },
+    { name: '成都站', longitude: 104.065735, latitude: 30.572269, capacity: 55, todayGeneration: 130, status: 'active' },
+    { name: '西安站', longitude: 108.939847, latitude: 34.341574, capacity: 40, todayGeneration: 95, status: 'active' },
+    { name: '武汉站', longitude: 114.305392, latitude: 30.592849, capacity: 60, todayGeneration: 140, status: 'active' },
+    { name: '南京站', longitude: 118.796877, latitude: 32.060255, capacity: 70, todayGeneration: 160, status: 'active' }
+  ]
+  
+  const displayStations = stations.length > 0 ? stations : defaultStations
+  
+  // 加载并注册中国地图
+  useEffect(() => {
+    fetch('/china.json')
+      .then(response => response.json())
+      .then(geoJson => {
+        echarts.registerMap('china', geoJson)
+        setMapRegistered(true)
+      })
+      .catch(error => {
+        console.error('Failed to load China map:', error)
+        setMapRegistered(true) // 即使失败也继续显示备用方案
+      })
+  }, [])
+  
   const option = useMemo(() => ({
     backgroundColor: 'transparent',
     tooltip: {
@@ -53,7 +84,7 @@ export default function StationMap({ stations = [] }) {
           shadowColor: '#00ff88'
         }
       },
-      data: stations.map(station => ({
+      data: displayStations.map(station => ({
         name: station.name,
         value: [
           station.longitude,
@@ -76,7 +107,7 @@ export default function StationMap({ stations = [] }) {
         shadowBlur: 10,
         shadowColor: '#00ff88'
       },
-      data: stations.filter(s => s.status === 'active').map(station => ({
+      data: displayStations.filter(s => s.status === 'active').map(station => ({
         name: station.name,
         value: [
           station.longitude,
@@ -86,10 +117,9 @@ export default function StationMap({ stations = [] }) {
         ]
       }))
     }]
-  }), [stations])
+  }), [displayStations])
 
-  // 注意：实际使用时需要引入中国地图数据
-  // 这里简化处理，使用散点图代替
+  // 如果地图未加载完成，使用简化的散点图
   const simplifiedOption = useMemo(() => ({
     backgroundColor: 'transparent',
     grid: {
@@ -167,7 +197,7 @@ export default function StationMap({ stations = [] }) {
     <div className="chart-container h-full">
       <h3 className="stat-label mb-4">电站分布</h3>
       <ReactECharts 
-        option={simplifiedOption} 
+        option={mapRegistered ? option : simplifiedOption} 
         style={{ height: 'calc(100% - 40px)' }}
         opts={{ renderer: 'canvas' }}
       />

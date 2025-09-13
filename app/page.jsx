@@ -144,7 +144,7 @@ export default function Page() {
 
         {/* 第三行：地图和效率对比 */}
         <GridItem colSpan={5}>
-          <StationMap stations={[]} />
+          <StationMap stations={data?.stations || []} />
         </GridItem>
         
         <GridItem colSpan={4}>
