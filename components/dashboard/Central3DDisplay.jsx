@@ -30,7 +30,7 @@ export default function Central3DDisplay({ data }) {
       // 绘制连接线 - 调整为相对于600x300的canvas
       const centerX = width / 2
       const centerY = height / 2
-      const radiusX = width * 0.45  // 水平方向半径
+      const radiusX = width * 0.3   // 水平方向半径，缩短到光伏和风机中心
       const radiusY = height * 0.4   // 垂直方向半径
       
       const connections = [
@@ -289,24 +289,6 @@ export default function Central3DDisplay({ data }) {
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-orange-500/20 rounded-full blur-xl"></div>
         </motion.div>
 
-        {/* 展厅负荷 */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="absolute right-[15%] bottom-[25%]"
-        >
-          <div className="w-24 h-16 bg-gradient-to-b from-purple-600 to-purple-800 rounded-lg shadow-xl relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/10 rounded-lg"></div>
-            <div className="flex items-center justify-center h-full">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">展厅负荷</div>
-          </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
-        </motion.div>
 
         {/* 连接线画布 - 位于中央 */}
         <canvas ref={canvasRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20" style={{ width: '600px', height: '300px' }}></canvas>
