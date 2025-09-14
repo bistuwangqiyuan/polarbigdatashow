@@ -42,7 +42,7 @@ const DeviceCard = ({ device, index, onToggle }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-neutral-500">输出功率</p>
-            <p className="text-lg font-display text-primary">{device.power} kW</p>
+            <p className="text-lg font-display text-primary">{Math.round(device.power)} kW</p>
           </div>
           <div>
             <p className="text-xs text-neutral-500">效率</p>
@@ -136,9 +136,9 @@ export default function DevicesPage() {
       prevDevices.map(device => {
         if (device.id === deviceId && device.switchable) {
           const newStatus = device.status === 'online' ? 'offline' : 'online'
-          const newPower = newStatus === 'online' ? (device.type === '光伏组件' ? 120 + Math.random() * 20 : device.power) : 0
-          const newEfficiency = newStatus === 'online' ? (device.type === '光伏组件' ? 95 + Math.random() * 3 : device.efficiency) : 0
-          const newLoad = newStatus === 'online' ? (device.type === '光伏组件' ? 80 + Math.random() * 15 : device.load) : 0
+          const newPower = newStatus === 'online' ? (device.type === '光伏组件' ? Math.round(120 + Math.random() * 20) : device.power) : 0
+          const newEfficiency = newStatus === 'online' ? (device.type === '光伏组件' ? Math.round(95 + Math.random() * 3) : device.efficiency) : 0
+          const newLoad = newStatus === 'online' ? (device.type === '光伏组件' ? Math.round(80 + Math.random() * 15) : device.load) : 0
           
           return {
             ...device,

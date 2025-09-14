@@ -343,6 +343,44 @@ export default function EnhancedDashboard() {
             </div>
           </div>
         </motion.div>
+
+        {/* 左下角企业宣传图 */}
+        <motion.div
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="absolute bottom-6 left-6"
+        >
+          <div className="relative group">
+            <Image
+              src="/image/aboutus.png"
+              alt="企业宣传"
+              width={200}
+              height={120}
+              className="rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+        </motion.div>
+
+        {/* 右下角企业宣传图 */}
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="absolute bottom-6 right-6"
+        >
+          <div className="relative group">
+            <Image
+              src="/image/aboutus2.jpg"
+              alt="企业宣传"
+              width={200}
+              height={120}
+              className="rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+        </motion.div>
       </main>
     </div>
   )

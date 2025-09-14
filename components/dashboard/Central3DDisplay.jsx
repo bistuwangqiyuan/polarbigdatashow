@@ -206,12 +206,12 @@ export default function Central3DDisplay({ data }) {
         {/* 连接线画布 */}
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none"></canvas>
 
-        {/* 电流虚线十字指示器 - 位于充电桩正上方 */}
+        {/* 电流虚线十字指示器 - 位于页面正中心 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="absolute left-1/2 -translate-x-1/2 top-[15%] z-20"
+          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20"
         >
           <div className="relative w-8 h-8">
             {/* 水平虚线 */}

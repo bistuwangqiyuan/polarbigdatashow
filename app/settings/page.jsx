@@ -580,7 +580,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <p className="text-neutral-500 mb-1">发布日期</p>
-                    <p className="text-neutral-300">2025年1月10日</p>
+                    <p className="text-neutral-300">2025年9月10日</p>
                   </div>
                   <div>
                     <p className="text-neutral-500 mb-1">开发团队</p>
