@@ -1,4 +1,5 @@
 import '../styles/globals.css';
+import { ThemeProvider } from '../lib/themeContext';
 
 export const metadata = {
     title: {
@@ -14,7 +15,9 @@ export default function RootLayout({ children }) {
                 <link rel="icon" href="/favicon.svg" sizes="any" />
             </head>
             <body className="antialiased text-white">
-                {children}
+                <ThemeProvider>
+                    {children}
+                </ThemeProvider>
             </body>
         </html>
     );
