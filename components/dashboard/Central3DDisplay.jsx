@@ -91,7 +91,7 @@ export default function Central3DDisplay({ data }) {
             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-16 bg-primary/30 rounded-full flex items-center justify-center">
               <div className="w-8 h-8 bg-primary rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">充电桩</div>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">场站用电</div>
           </div>
         </motion.div>
 
@@ -141,7 +141,7 @@ export default function Central3DDisplay({ data }) {
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
         </motion.div>
 
-        {/* 储能设备 */}
+        {/* 储能 */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -162,12 +162,12 @@ export default function Central3DDisplay({ data }) {
                 </div>
               ))}
             </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">储能设备</div>
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">储能</div>
           </div>
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
         </motion.div>
 
-        {/* 箱式变电站 */}
+        {/* 变电站 */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -179,7 +179,7 @@ export default function Central3DDisplay({ data }) {
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 bg-yellow-500 rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">箱式变电站</div>
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">变电站</div>
           </div>
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
         </motion.div>
@@ -205,6 +205,32 @@ export default function Central3DDisplay({ data }) {
 
         {/* 连接线画布 */}
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none"></canvas>
+
+        {/* 电流虚线十字指示器 - 位于充电桩正上方 */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="absolute left-1/2 -translate-x-1/2 top-[15%] z-20"
+        >
+          <div className="relative w-8 h-8">
+            {/* 水平虚线 */}
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-primary/80 transform -translate-y-1/2"
+                 style={{
+                   backgroundImage: 'repeating-linear-gradient(to right, transparent, transparent 2px, #00ff88 2px, #00ff88 4px)',
+                   filter: 'drop-shadow(0 0 4px #00ff88)'
+                 }}></div>
+            {/* 垂直虚线 */}
+            <div className="absolute left-1/2 top-0 w-0.5 h-full bg-primary/80 transform -translate-x-1/2"
+                 style={{
+                   backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 2px, #00ff88 2px, #00ff88 4px)',
+                   filter: 'drop-shadow(0 0 4px #00ff88)'
+                 }}></div>
+            {/* 中心圆点 */}
+            <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-primary rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-pulse"
+                 style={{filter: 'drop-shadow(0 0 4px #00ff88)'}}></div>
+          </div>
+        </motion.div>
 
         {/* 能量流动数值 */}
         <div className="absolute left-[35%] top-1/2 -translate-y-1/2 text-primary font-bold text-sm">

@@ -2,8 +2,8 @@ import '../styles/globals.css';
 
 export const metadata = {
     title: {
-        template: '%s | 光伏电站监控中心',
-        default: '光伏电站智能监控中心'
+        template: '%s | 光伏新能源路由和关断管理系统',
+        default: '光伏新能源路由和关断管理系统'
     }
 };
 

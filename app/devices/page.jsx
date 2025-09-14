@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import Image from 'next/image'
 
 // 设备状态组件
-const DeviceCard = ({ device, index }) => {
+const DeviceCard = ({ device, index, onToggle }) => {
   const statusColors = {
     online: 'text-success border-success/30 bg-success/10',
     offline: 'text-danger border-danger/30 bg-danger/10',
@@ -14,7 +15,7 @@ const DeviceCard = ({ device, index }) => {
 
   const statusText = {
     online: '正常运行',
-    offline: '离线',
+    offline: device.switchable ? '已关断' : '离线',
     warning: '告警'
   }
 
@@ -77,11 +78,32 @@ const DeviceCard = ({ device, index }) => {
         </div>
       </div>
 
-      {/* 查看详情 */}
-      <div className="mt-4 pt-4 border-t border-neutral-800">
-        <button className="text-sm text-primary hover:text-primary/80 transition-colors group-hover:translate-x-1 transform duration-300">
-          查看详细信息 →
-        </button>
+      {/* 操作按钮 */}
+      <div className="mt-4 pt-4 border-t border-neutral-800 flex gap-2">
+        {/* 查看详情按钮 */}
+        {device.type === '光伏组件' ? (
+          <Link href={`/devices/solar/${device.id}`} className="flex-1 text-center py-2 text-sm text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded transition-colors">
+            查看详情
+          </Link>
+        ) : (
+          <button className="flex-1 py-2 text-sm text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded transition-colors">
+            查看详情
+          </button>
+        )}
+        
+        {/* 关断/开启按钮（仅光伏阵列） */}
+        {device.switchable && (
+          <button 
+            onClick={() => onToggle && onToggle(device.id)}
+            className={`flex-1 py-2 text-sm border rounded transition-colors ${
+              device.status === 'online' 
+                ? 'text-danger hover:text-danger/80 bg-danger/10 hover:bg-danger/20 border-danger/30' 
+                : 'text-success hover:text-success/80 bg-success/10 hover:bg-success/20 border-success/30'
+            }`}
+          >
+            {device.status === 'online' ? '关断' : '开启'}
+          </button>
+        )}
       </div>
     </motion.div>
   )
@@ -92,27 +114,53 @@ export default function DevicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   // 模拟设备数据
-  const devices = [
-    { id: 1, name: '光伏阵列-01', type: '光伏组件', status: 'online', power: 125.5, efficiency: 96.5, temperature: 35, runtime: 4320, load: 85 },
-    { id: 2, name: '光伏阵列-02', type: '光伏组件', status: 'online', power: 118.2, efficiency: 95.8, temperature: 34, runtime: 4320, load: 82 },
-    { id: 3, name: '风机-01', type: '风力发电机', status: 'online', power: 45.3, efficiency: 94.2, temperature: 28, runtime: 3960, load: 75 },
-    { id: 4, name: '风机-02', type: '风力发电机', status: 'warning', power: 38.7, efficiency: 92.1, temperature: 31, runtime: 3960, load: 68 },
-    { id: 5, name: '储能电池组-01', type: '储能设备', status: 'online', power: 80.0, efficiency: 98.5, temperature: 25, runtime: 8760, load: 88 },
-    { id: 6, name: '储能电池组-02', type: '储能设备', status: 'online', power: 75.5, efficiency: 98.2, temperature: 24, runtime: 8760, load: 85 },
-    { id: 7, name: '逆变器-01', type: '电力转换', status: 'online', power: 95.0, efficiency: 97.8, temperature: 42, runtime: 8640, load: 90 },
-    { id: 8, name: '逆变器-02', type: '电力转换', status: 'offline', power: 0, efficiency: 0, temperature: 25, runtime: 8635, load: 0 },
-    { id: 9, name: '充电桩-01', type: '充电设备', status: 'online', power: 60.0, efficiency: 95.0, temperature: 30, runtime: 7200, load: 100 },
-    { id: 10, name: '充电桩-02', type: '充电设备', status: 'online', power: 30.0, efficiency: 95.0, temperature: 28, runtime: 7200, load: 50 },
-  ]
+  const [devices, setDevices] = useState([
+    { id: 1, name: '光伏阵列-01', type: '光伏组件', status: 'online', power: 125.5, efficiency: 96.5, temperature: 35, runtime: 4320, load: 85, switchable: true },
+    { id: 2, name: '光伏阵列-02', type: '光伏组件', status: 'online', power: 118.2, efficiency: 95.8, temperature: 34, runtime: 4320, load: 82, switchable: true },
+    { id: 3, name: '光伏阵列-03', type: '光伏组件', status: 'online', power: 132.1, efficiency: 97.2, temperature: 36, runtime: 4320, load: 88, switchable: true },
+    { id: 4, name: '光伏阵列-04', type: '光伏组件', status: 'offline', power: 0, efficiency: 0, temperature: 25, runtime: 4320, load: 0, switchable: true },
+    { id: 5, name: '光伏阵列-05', type: '光伏组件', status: 'offline', power: 0, efficiency: 0, temperature: 25, runtime: 4320, load: 0, switchable: true },
+    { id: 6, name: '风机-01', type: '风力发电机', status: 'online', power: 45.3, efficiency: 94.2, temperature: 28, runtime: 3960, load: 75 },
+    { id: 7, name: '风机-02', type: '风力发电机', status: 'warning', power: 38.7, efficiency: 92.1, temperature: 31, runtime: 3960, load: 68 },
+    { id: 8, name: '储能电池组-01', type: '储能', status: 'online', power: 80.0, efficiency: 98.5, temperature: 25, runtime: 8760, load: 88 },
+    { id: 9, name: '储能电池组-02', type: '储能', status: 'online', power: 75.5, efficiency: 98.2, temperature: 24, runtime: 8760, load: 85 },
+    { id: 10, name: '逆变器-01', type: '电力转换', status: 'online', power: 95.0, efficiency: 97.8, temperature: 42, runtime: 8640, load: 90 },
+    { id: 11, name: '逆变器-02', type: '电力转换', status: 'offline', power: 0, efficiency: 0, temperature: 25, runtime: 8635, load: 0 },
+    { id: 12, name: '用能设备-01', type: '用能设备', status: 'online', power: 60.0, efficiency: 95.0, temperature: 30, runtime: 7200, load: 100 },
+    { id: 13, name: '用能设备-02', type: '用能设备', status: 'online', power: 30.0, efficiency: 95.0, temperature: 28, runtime: 7200, load: 50 },
+  ])
+
+  // 切换设备状态
+  const toggleDeviceStatus = (deviceId) => {
+    setDevices(prevDevices =>
+      prevDevices.map(device => {
+        if (device.id === deviceId && device.switchable) {
+          const newStatus = device.status === 'online' ? 'offline' : 'online'
+          const newPower = newStatus === 'online' ? (device.type === '光伏组件' ? 120 + Math.random() * 20 : device.power) : 0
+          const newEfficiency = newStatus === 'online' ? (device.type === '光伏组件' ? 95 + Math.random() * 3 : device.efficiency) : 0
+          const newLoad = newStatus === 'online' ? (device.type === '光伏组件' ? 80 + Math.random() * 15 : device.load) : 0
+          
+          return {
+            ...device,
+            status: newStatus,
+            power: newPower,
+            efficiency: newEfficiency,
+            load: newLoad
+          }
+        }
+        return device
+      })
+    )
+  }
 
   // 设备类型
   const deviceTypes = [
     { value: 'all', label: '全部设备', count: devices.length },
     { value: '光伏组件', label: '光伏组件', count: devices.filter(d => d.type === '光伏组件').length },
     { value: '风力发电机', label: '风力发电机', count: devices.filter(d => d.type === '风力发电机').length },
-    { value: '储能设备', label: '储能设备', count: devices.filter(d => d.type === '储能设备').length },
+    { value: '储能', label: '储能', count: devices.filter(d => d.type === '储能').length },
     { value: '电力转换', label: '电力转换', count: devices.filter(d => d.type === '电力转换').length },
-    { value: '充电设备', label: '充电设备', count: devices.filter(d => d.type === '充电设备').length },
+    { value: '用能设备', label: '用能设备', count: devices.filter(d => d.type === '用能设备').length },
   ]
 
   // 过滤设备
@@ -132,6 +180,13 @@ export default function DevicesPage() {
               <Link href="/" className="text-primary hover:text-primary/80 transition-colors">
                 ← 返回主页
               </Link>
+              <Image
+                src="/image/logo.png"
+                alt="公司Logo"
+                width={50}
+                height={50}
+                className="object-contain"
+              />
               <h1 className="text-2xl font-display text-primary glow-text">设备管理中心</h1>
             </div>
             <div className="flex items-center gap-4">
@@ -193,7 +248,7 @@ export default function DevicesPage() {
         {/* 设备网格 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredDevices.map((device, index) => (
-            <DeviceCard key={device.id} device={device} index={index} />
+            <DeviceCard key={device.id} device={device} index={index} onToggle={toggleDeviceStatus} />
           ))}
         </div>
 
@@ -203,6 +258,71 @@ export default function DevicesPage() {
             <p className="text-neutral-400 text-lg">没有找到匹配的设备</p>
           </div>
         )}
+
+        {/* 企业设施展示 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-16 mb-8"
+        >
+          <h3 className="text-xl font-display text-primary mb-8 text-center">设施概览</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="relative overflow-hidden rounded-xl shadow-xl"
+            >
+              <Image
+                src="/image/oilstoragetank.jpg"
+                alt="储油设施"
+                width={400}
+                height={300}
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-white">
+                <h4 className="text-lg font-medium">储油设施</h4>
+                <p className="text-sm text-neutral-300">大型储油罐群</p>
+              </div>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="relative overflow-hidden rounded-xl shadow-xl"
+            >
+              <Image
+                src="/image/oilstoragetank2.png"
+                alt="储运基地"
+                width={400}
+                height={300}
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-white">
+                <h4 className="text-lg font-medium">储运基地</h4>
+                <p className="text-sm text-neutral-300">现代化储运中心</p>
+              </div>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="relative overflow-hidden rounded-xl shadow-xl"
+            >
+              <Image
+                src="/image/pipe.jpg"
+                alt="输送管道"
+                width={400}
+                height={300}
+                className="w-full h-48 object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 text-white">
+                <h4 className="text-lg font-medium">输送管道</h4>
+                <p className="text-sm text-neutral-300">长输管道网络</p>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </main>
     </div>
   )

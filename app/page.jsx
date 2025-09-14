@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
+import Link from 'next/link'
 import Central3DDisplay from 'components/dashboard/Central3DDisplay'
 import EnhancedStatCard from 'components/dashboard/EnhancedStatCard'
 import { useRealtimeData } from 'hooks/useRealtimeData'
@@ -55,7 +57,7 @@ export default function EnhancedDashboard() {
       <div className="min-h-screen dashboard-bg flex items-center justify-center">
         <div className="text-center">
           <div className="text-primary text-2xl font-display animate-pulse mb-4">
-            {!isSupabaseConfigured ? '正在启动演示模式...' : '系统加载中...'}
+            {!isSupabaseConfigured ? '正在启动大屏模式...' : '系统加载中...'}
           </div>
           {!isSupabaseConfigured && (
             <div className="text-sm text-warning bg-warning/10 px-4 py-2 rounded border border-warning/30">
@@ -90,19 +92,19 @@ export default function EnhancedDashboard() {
     )
   }
 
-  // 模拟数据（实际应从API获取）
+  // 模拟数据（基于10MW总容量：光伏5MW + 风力5MW）
   const mockData = {
-    yesterdayPower: { solar: 8056, wind: 2369, charge: 8056, grid: 10056 },
-    todayPower: { solar: 6230, wind: 1875, charge: 6432, grid: 8056 },
-    batteryStatus: { percentage: 88, soc: 8056, charging: 25655 },
+    yesterdayPower: { solar: 12500, wind: 15000, charge: 5500, grid: 13750 },
+    todayPower: { solar: 10200, wind: 12800, charge: 4600, grid: 11500 },
+    batteryStatus: { percentage: 88, soc: 1760, charging: 4600 },
     windSolarStats: {
-      currentSolar: 20,
-      currentWind: 25,
-      totalGenerated: 95646,
-      totalCharge: 38056,
-      totalGrid: 98783
+      currentSolar: 2000,
+      currentWind: 2500,
+      totalGenerated: 3150000,
+      totalCharge: 630000,
+      totalGrid: 1575000
     },
-    revenue: 5095370.48
+    revenue: 1575000
   }
 
   return (
@@ -114,30 +116,42 @@ export default function EnhancedDashboard() {
       <header className="relative z-20 border-b border-primary/30 backdrop-blur-sm">
         <div className="px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-display text-primary glow-text">
-              南庄坪风光储充微电网
-            </h1>
+            <div className="flex items-center gap-4">
+              <Image
+                src="/image/logo.png"
+                alt="公司Logo"
+                width={60}
+                height={60}
+                className="object-contain"
+              />
+              <h1 className="text-3xl font-display text-primary glow-text">
+                光伏能源关断管理系统
+              </h1>
+            </div>
             <div className="flex items-center gap-8">
               {/* 导航菜单 */}
               <nav className="flex items-center gap-6">
-                <a href="/devices" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                <Link href="/about" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  关于我们
+                </Link>
+                <Link href="/devices" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   设备管理
-                </a>
-                <a href="/analytics" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                </Link>
+                <Link href="/analytics" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   数据分析
-                </a>
-                <a href="/history" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                </Link>
+                <Link href="/history" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   历史趋势
-                </a>
-                <a href="/settings" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                </Link>
+                <Link href="/settings" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   系统设置
-                </a>
+                </Link>
               </nav>
               <div className="flex items-center gap-6">
                 {/* 配置状态指示器 */}
                 {!isSupabaseConfigured && (
                   <div className="px-3 py-1 text-xs bg-warning/20 text-warning border border-warning/30 rounded-full">
-                    演示模式
+                    大屏模式
                   </div>
                 )}
                 <div className="text-lg font-display text-primary">
