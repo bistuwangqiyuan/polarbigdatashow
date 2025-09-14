@@ -27,16 +27,17 @@ export default function Central3DDisplay({ data }) {
       ctx.strokeStyle = '#00ff88'
       ctx.lineWidth = 2
 
-      // 绘制连接线 - 调整为相对于300x150的canvas
+      // 绘制连接线 - 调整为相对于600x300的canvas
       const centerX = width / 2
       const centerY = height / 2
-      const radius = Math.min(width, height) * 0.4
+      const radiusX = width * 0.45  // 水平方向半径
+      const radiusY = height * 0.4   // 垂直方向半径
       
       const connections = [
-        { from: { x: centerX - radius, y: centerY }, to: { x: centerX, y: centerY } }, // 左到中
-        { from: { x: centerX + radius, y: centerY }, to: { x: centerX, y: centerY } }, // 右到中
-        { from: { x: centerX, y: centerY - radius * 0.6 }, to: { x: centerX, y: centerY } }, // 上到中
-        { from: { x: centerX, y: centerY + radius * 0.6 }, to: { x: centerX, y: centerY } }, // 下到中
+        { from: { x: centerX - radiusX, y: centerY }, to: { x: centerX, y: centerY } }, // 左到中
+        { from: { x: centerX + radiusX, y: centerY }, to: { x: centerX, y: centerY } }, // 右到中
+        { from: { x: centerX, y: centerY - radiusY }, to: { x: centerX, y: centerY } }, // 上到中
+        { from: { x: centerX, y: centerY + radiusY }, to: { x: centerX, y: centerY } }, // 下到中
       ]
 
       connections.forEach(({ from, to }) => {
@@ -308,7 +309,7 @@ export default function Central3DDisplay({ data }) {
         </motion.div>
 
         {/* 连接线画布 - 位于中央 */}
-        <canvas ref={canvasRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20" style={{ width: '300px', height: '150px' }}></canvas>
+        <canvas ref={canvasRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20" style={{ width: '600px', height: '300px' }}></canvas>
 
         {/* 电流虚线十字指示器 - 位于场站用电圆形中心 */}
         <motion.div
