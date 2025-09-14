@@ -76,7 +76,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=你的Supabase匿名密钥
 SUPABASE_SERVICE_ROLE_KEY=你的Supabase服务角色密钥
 ```
 
-**注意**：项目已包含示例环境变量，可直接使用进行测试。
+**重要**：系统支持两种运行模式：
+- **演示模式**：如果未配置环境变量，系统将自动使用模拟数据运行
+- **生产模式**：配置真实的Supabase连接后，系统将连接到真实数据库
+
+**获取 Supabase 配置的步骤**：
+1. 登录 [https://supabase.com/](https://supabase.com/)
+2. 创建新项目或选择现有项目
+3. 转到 Project Settings > API
+4. 复制以下信息：
+   - Project URL (NEXT_PUBLIC_SUPABASE_URL)
+   - Project API keys 中的 anon public key (NEXT_PUBLIC_SUPABASE_ANON_KEY)
+   - Project API keys 中的 service_role key (SUPABASE_SERVICE_ROLE_KEY)
 
 4. **初始化数据库**
 在Supabase控制台执行 `lib/supabase-init.sql` 中的SQL脚本来创建必要的数据表。
@@ -173,14 +184,29 @@ node scripts/init-test-data.js
    - Build command: `npm run build`
    - Publish directory: `.next`
 
-3. **设置环境变量**
+3. **设置环境变量（可选）**
    在Netlify控制台的Site settings > Environment variables中添加：
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   
+   **注意**：如果不设置这些环境变量，系统将自动以演示模式运行，使用模拟数据。
 
 4. **部署**
    推送代码到Git仓库，Netlify会自动构建和部署。
+
+### 部署后的状态指示
+
+系统部署后会根据配置自动选择运行模式：
+- **演示模式**：右上角显示"演示模式"标识，使用模拟数据，快速加载
+- **生产模式**：连接真实数据库，显示实时数据
+
+### 错误排查
+
+如果遇到以下错误：
+1. **Multiple GoTrueClient instances detected**：已修复，使用单例模式管理客户端
+2. **WebSocket connection failed**：系统会自动降级为演示模式
+3. **系统加载时间过长**：检查网络连接或切换到演示模式
 
 ### 自定义域名
 在Netlify控制台的Domain settings中可以配置自定义域名。

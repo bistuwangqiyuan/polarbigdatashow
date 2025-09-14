@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   getRealtimePowerData, 
   getTodaySummary, 
@@ -8,6 +8,7 @@ import {
   subscribeToRealtimeUpdates,
   generateMockData
 } from '../lib/dataService'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export function useRealtimeData(refreshInterval = 5000) {
   const [data, setData] = useState({
@@ -21,8 +22,9 @@ export function useRealtimeData(refreshInterval = 5000) {
   })
 
   // 获取所有数据
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
+      // 并行获取所有数据
       const [realtime, summary, inverters, alerts, trend] = await Promise.all([
         getRealtimePowerData(),
         getTodaySummary(),
@@ -48,35 +50,55 @@ export function useRealtimeData(refreshInterval = 5000) {
         error: error.message
       }))
     }
-  }
+  }, [])
 
   useEffect(() => {
-    // 初始加载
-    fetchAllData()
+    // 快速初始化：如果Supabase未配置，立即生成模拟数据
+    if (!isSupabaseConfigured) {
+      // 模拟一个短暂的延迟以显示加载状态
+      setTimeout(() => {
+        fetchAllData()
+      }, 500)
+    } else {
+      // 正常初始加载
+      fetchAllData()
+    }
 
     // 设置定时刷新
     const interval = setInterval(() => {
-      fetchAllData()
+      if (!data.loading) {
+        fetchAllData()
+      }
     }, refreshInterval)
 
-    // 订阅实时更新
-    const unsubscribe = subscribeToRealtimeUpdates((payload) => {
-      console.log('Realtime update:', payload)
-      // 当有实时更新时，立即刷新数据
-      fetchAllData()
-    })
+    // 订阅实时更新（仅在配置了Supabase时）
+    let unsubscribe = () => {}
+    if (isSupabaseConfigured) {
+      unsubscribe = subscribeToRealtimeUpdates((payload) => {
+        console.log('Realtime update:', payload)
+        // 当有实时更新时，立即刷新数据
+        if (!data.loading) {
+          fetchAllData()
+        }
+      })
+    }
 
-    // 生成模拟数据（仅用于演示）
-    const mockDataInterval = setInterval(() => {
-      generateMockData().catch(console.error)
-    }, 10000) // 每10秒生成一次模拟数据
+    // 生成模拟数据（仅在配置了Supabase时）
+    let mockDataInterval = null
+    if (isSupabaseConfigured) {
+      mockDataInterval = setInterval(() => {
+        generateMockData().catch(console.error)
+      }, 10000) // 每10秒生成一次模拟数据
+    }
 
     return () => {
       clearInterval(interval)
-      clearInterval(mockDataInterval)
+      if (mockDataInterval) {
+        clearInterval(mockDataInterval)
+      }
       unsubscribe()
     }
-  }, [refreshInterval])
+  }, [fetchAllData, data.loading, refreshInterval])
 
   return data
 }

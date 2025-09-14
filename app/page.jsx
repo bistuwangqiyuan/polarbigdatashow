@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import Central3DDisplay from 'components/dashboard/Central3DDisplay'
 import EnhancedStatCard from 'components/dashboard/EnhancedStatCard'
 import { useRealtimeData } from 'hooks/useRealtimeData'
+import { isSupabaseConfigured } from 'lib/supabase'
 
 // 图标组件
 const PowerIcon = () => (
@@ -48,10 +49,43 @@ export default function EnhancedDashboard() {
     return () => clearInterval(timer)
   }, [])
 
+  // 加载状态处理
   if (loading && !realtime) {
     return (
       <div className="min-h-screen dashboard-bg flex items-center justify-center">
-        <div className="text-primary text-2xl font-display animate-pulse">系统加载中...</div>
+        <div className="text-center">
+          <div className="text-primary text-2xl font-display animate-pulse mb-4">
+            {!isSupabaseConfigured ? '正在启动演示模式...' : '系统加载中...'}
+          </div>
+          {!isSupabaseConfigured && (
+            <div className="text-sm text-warning bg-warning/10 px-4 py-2 rounded border border-warning/30">
+              未配置 Supabase，正在使用模拟数据运行
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 错误状态处理
+  if (error) {
+    return (
+      <div className="min-h-screen dashboard-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-danger text-xl font-display mb-4">加载失败</div>
+          <div className="text-neutral-400 text-sm mb-4">
+            {!isSupabaseConfigured 
+              ? '配置错误：请检查 Supabase 配置' 
+              : `错误信息：${error}`
+            }
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-black rounded hover:bg-primary/80 transition-colors"
+          >
+            重新加载
+          </button>
+        </div>
       </div>
     )
   }
@@ -100,6 +134,12 @@ export default function EnhancedDashboard() {
                 </a>
               </nav>
               <div className="flex items-center gap-6">
+                {/* 配置状态指示器 */}
+                {!isSupabaseConfigured && (
+                  <div className="px-3 py-1 text-xs bg-warning/20 text-warning border border-warning/30 rounded-full">
+                    演示模式
+                  </div>
+                )}
                 <div className="text-lg font-display text-primary">
                   {currentTime.toLocaleTimeString('zh-CN', { hour12: false })}
                 </div>
