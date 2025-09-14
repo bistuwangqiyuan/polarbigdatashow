@@ -102,16 +102,54 @@ export default function Central3DDisplay({ data }) {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="absolute left-[20%] top-1/2 -translate-y-1/2"
         >
-          <div className="w-24 h-20 transform -skew-y-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded shadow-xl relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded"></div>
-            <div className="grid grid-cols-3 gap-1 p-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-blue-900/50 rounded-sm"></div>
-              ))}
+          <div className="relative">
+            {/* 支架 */}
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-1 h-8 bg-gradient-to-b from-gray-500 to-gray-700"></div>
+            
+            {/* 光伏板主体 */}
+            <div className="w-32 h-24 transform -rotate-12 skew-y-6 relative">
+              {/* 铝合金边框 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-500 rounded shadow-2xl">
+                {/* 内部光伏电池阵列 */}
+                <div className="absolute inset-1 bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 rounded overflow-hidden">
+                  {/* 玻璃反光效果 */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5"></div>
+                  
+                  {/* 光伏电池单元网格 */}
+                  <div className="absolute inset-0.5 grid grid-cols-6 grid-rows-4 gap-[1px] p-1">
+                    {[...Array(24)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="relative bg-gradient-to-br from-blue-800 to-blue-950 rounded-[1px] overflow-hidden"
+                      >
+                        {/* 电池片内部纹理 */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/20"></div>
+                        {/* 电极线 */}
+                        <div className="absolute inset-x-0 top-1/2 h-[0.5px] bg-gray-400/30"></div>
+                        <div className="absolute inset-y-0 left-1/2 w-[0.5px] bg-gray-400/30"></div>
+                        {/* 微小反光点 */}
+                        {i % 3 === 0 && (
+                          <div className="absolute top-0.5 right-0.5 w-0.5 h-0.5 bg-white/40 rounded-full"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* 额外的光泽层 */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent"></div>
+                </div>
+              </div>
+              
+              {/* 边框高光 */}
+              <div className="absolute -inset-[1px] bg-gradient-to-br from-white/20 to-transparent rounded pointer-events-none"></div>
             </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">光伏</div>
+            
+            {/* 标签 */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-primary font-bold whitespace-nowrap">光伏</div>
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
+          
+          {/* 发光效果 */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-16 bg-blue-400/20 rounded-full blur-xl"></div>
         </motion.div>
 
         {/* 风机 */}
@@ -211,10 +249,10 @@ export default function Central3DDisplay({ data }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30"
-          style={{ transform: 'translate(-50%, calc(-50% - 3rem))' }}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
+          style={{ marginTop: '-32px' }}
         >
-          <div className="relative w-8 h-8">
+          <div className="relative w-16 h-16 -ml-6 -mt-6">
             {/* 水平虚线 */}
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-primary/80 transform -translate-y-1/2"
                  style={{
