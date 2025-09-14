@@ -27,12 +27,16 @@ export default function Central3DDisplay({ data }) {
       ctx.strokeStyle = '#00ff88'
       ctx.lineWidth = 2
 
-      // 绘制连接线
+      // 绘制连接线 - 调整为相对于300x150的canvas
+      const centerX = width / 2
+      const centerY = height / 2
+      const radius = Math.min(width, height) * 0.4
+      
       const connections = [
-        { from: { x: width * 0.2, y: height * 0.5 }, to: { x: width * 0.5, y: height * 0.5 } },
-        { from: { x: width * 0.8, y: height * 0.5 }, to: { x: width * 0.5, y: height * 0.5 } },
-        { from: { x: width * 0.5, y: height * 0.2 }, to: { x: width * 0.5, y: height * 0.5 } },
-        { from: { x: width * 0.5, y: height * 0.8 }, to: { x: width * 0.5, y: height * 0.5 } },
+        { from: { x: centerX - radius, y: centerY }, to: { x: centerX, y: centerY } }, // 左到中
+        { from: { x: centerX + radius, y: centerY }, to: { x: centerX, y: centerY } }, // 右到中
+        { from: { x: centerX, y: centerY - radius * 0.6 }, to: { x: centerX, y: centerY } }, // 上到中
+        { from: { x: centerX, y: centerY + radius * 0.6 }, to: { x: centerX, y: centerY } }, // 下到中
       ]
 
       connections.forEach(({ from, to }) => {
@@ -212,14 +216,76 @@ export default function Central3DDisplay({ data }) {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="absolute left-1/2 -translate-x-1/2 bottom-[20%]"
         >
-          <div className="w-28 h-20 bg-gradient-to-b from-orange-600 to-orange-800 rounded-lg shadow-xl relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/10 rounded-lg"></div>
-            <div className="flex items-center justify-center h-full">
-              <div className="w-6 h-6 bg-yellow-500 rounded-full animate-pulse"></div>
+          <div className="relative w-36 h-24">
+            {/* 围栏底座 */}
+            <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-b from-gray-600 to-gray-800 rounded"></div>
+            
+            {/* 主变压器 */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-20 h-16">
+              {/* 变压器主体 */}
+              <div className="relative w-full h-full">
+                {/* 变压器外壳 */}
+                <div className="absolute inset-0 bg-gradient-to-b from-orange-500 to-orange-700 rounded-lg shadow-2xl">
+                  <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/10 rounded-lg"></div>
+                  
+                  {/* 散热片纹理 */}
+                  <div className="absolute inset-x-1 inset-y-2 flex flex-col gap-[1px]">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex-1 bg-orange-800/40 rounded-sm"></div>
+                    ))}
+                  </div>
+                  
+                  {/* 变压器铭牌 */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-4 bg-yellow-600/80 rounded-sm flex items-center justify-center">
+                    <div className="text-[6px] font-bold text-orange-900">HV</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold">变电站</div>
+            
+            {/* 高压线塔架 */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-8">
+              {/* 横梁 */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-gray-400 to-gray-600"></div>
+              
+              {/* 支撑柱 */}
+              <div className="absolute top-0 left-2 w-0.5 h-full bg-gradient-to-b from-gray-400 to-gray-600"></div>
+              <div className="absolute top-0 right-2 w-0.5 h-full bg-gradient-to-b from-gray-400 to-gray-600"></div>
+              
+              {/* 绝缘子串 */}
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="absolute top-1" style={{ left: `${25 + i * 25}%` }}>
+                  {/* 绝缘子 */}
+                  <div className="flex flex-col items-center gap-[1px]">
+                    {[...Array(3)].map((_, j) => (
+                      <div key={j} className="w-2 h-[2px] bg-gradient-to-b from-teal-300 to-teal-500 rounded-full"></div>
+                    ))}
+                  </div>
+                  {/* 连接线 */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[1px] h-3 bg-orange-600"></div>
+                </div>
+              ))}
+            </div>
+            
+            {/* 开关设备 */}
+            <div className="absolute bottom-2 left-3 w-4 h-4 bg-gradient-to-b from-gray-300 to-gray-500 rounded-sm shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-sm"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-red-500 rounded-full animate-pulse"></div>
+            </div>
+            
+            {/* 电流指示 */}
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute top-6 left-1/2 -translate-x-1/2 w-[1px] h-8 bg-gradient-to-b from-yellow-400 to-orange-600"
+            ></motion.div>
+            
+            {/* 标签 */}
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-primary font-bold whitespace-nowrap">变电站</div>
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
+          
+          {/* 发光效果 */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-orange-500/20 rounded-full blur-xl"></div>
         </motion.div>
 
         {/* 展厅负荷 */}
@@ -241,8 +307,8 @@ export default function Central3DDisplay({ data }) {
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-current/20 rounded-full blur-xl"></div>
         </motion.div>
 
-        {/* 连接线画布 */}
-        <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none"></canvas>
+        {/* 连接线画布 - 位于中央 */}
+        <canvas ref={canvasRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20" style={{ width: '300px', height: '150px' }}></canvas>
 
         {/* 电流虚线十字指示器 - 位于场站用电圆形中心 */}
         <motion.div
@@ -250,9 +316,8 @@ export default function Central3DDisplay({ data }) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30"
-          style={{ marginTop: '-32px' }}
         >
-          <div className="relative w-16 h-16 -ml-6 -mt-6">
+          <div className="relative w-16 h-16">
             {/* 水平虚线 */}
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-primary/80 transform -translate-y-1/2"
                  style={{
