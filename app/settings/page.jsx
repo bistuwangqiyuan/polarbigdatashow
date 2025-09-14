@@ -1,19 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useTheme } from '../../lib/themeContext'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general')
   const [showLogs, setShowLogs] = useState(false)
+  const { theme, changeTheme, themes } = useTheme()
   const [settings, setSettings] = useState({
     // 通用设置
     siteName: '光伏能源关断管理系统',
     refreshInterval: 10,
     language: 'zh-CN',
-    theme: 'dark',
+    theme: theme || 'dark',
     
     // 告警设置
     enableAlerts: true,
@@ -36,6 +38,14 @@ export default function SettingsPage() {
     decimalPlaces: 2,
     timeFormat: '24h'
   })
+
+  // 同步主题初始值
+  useEffect(() => {
+    setSettings(prev => ({
+      ...prev,
+      theme: theme
+    }))
+  }, [theme])
 
   const handleSettingChange = (category, key, value) => {
     setSettings(prev => ({
@@ -506,41 +516,44 @@ export default function SettingsPage() {
                       { id: 'blue', name: '蓝色风格', primary: '#3b82f6', secondary: '#60a5fa', bg: '#1e3a8a' },
                       { id: 'white', name: '白色风格', primary: '#0ea5e9', secondary: '#06b6d4', bg: '#f8fafc' },
                       { id: 'green', name: '绿色风格', primary: '#10b981', secondary: '#34d399', bg: '#064e3b' }
-                    ].map(theme => (
-                      <label key={theme.id} className="cursor-pointer">
+                    ].map(themeItem => (
+                      <label key={themeItem.id} className="cursor-pointer">
                         <input
                           type="radio"
                           name="colorTheme"
-                          value={theme.id}
-                          checked={settings.theme === theme.id}
-                          onChange={(e) => setSettings({...settings, theme: e.target.value})}
+                          value={themeItem.id}
+                          checked={theme === themeItem.id}
+                          onChange={(e) => {
+                            changeTheme(e.target.value);
+                            setSettings({...settings, theme: e.target.value})
+                          }}
                           className="sr-only"
                         />
                         <div className={`
                           p-4 rounded-lg border-2 transition-all
-                          ${settings.theme === theme.id ? 'border-primary' : 'border-neutral-700'}
+                          ${theme === themeItem.id ? 'border-primary' : 'border-neutral-700'}
                           hover:border-primary/50
                         `}>
                           <div className="flex items-center gap-3 mb-3">
                             <div 
                               className="w-12 h-12 rounded-lg flex items-center justify-center"
-                              style={{ backgroundColor: theme.bg }}
+                              style={{ backgroundColor: themeItem.bg }}
                             >
                               <div 
                                 className="w-6 h-6 rounded"
-                                style={{ backgroundColor: theme.primary }}
+                                style={{ backgroundColor: themeItem.primary }}
                               />
                             </div>
-                            <span className="text-neutral-300 font-medium">{theme.name}</span>
+                            <span className="text-neutral-300 font-medium">{themeItem.name}</span>
                           </div>
                           <div className="flex gap-2">
                             <div 
                               className="w-8 h-3 rounded"
-                              style={{ backgroundColor: theme.primary }}
+                              style={{ backgroundColor: themeItem.primary }}
                             />
                             <div 
                               className="w-8 h-3 rounded"
-                              style={{ backgroundColor: theme.secondary }}
+                              style={{ backgroundColor: themeItem.secondary }}
                             />
                           </div>
                         </div>
