@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import SafeECharts from '@/components/charts/SafeECharts'
+import SafeECharts from '../../components/charts/SafeECharts'
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState('week')

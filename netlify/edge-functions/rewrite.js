@@ -1,6 +1,7 @@
+// 简化的Edge函数 - 避免不必要的重写
 const rewrite = async (request, context) => {
-    const path = context.geo?.country?.code === 'AU' ? '/edge/australia' : '/edge/not-australia';
-    return new URL(path, request.url);
+    // 直接返回原始请求，不进行重写
+    return;
 };
 
 export const config = {
