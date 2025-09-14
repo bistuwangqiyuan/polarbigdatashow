@@ -79,12 +79,12 @@ export default function Central3DDisplay({ data }) {
       
       {/* 3D 设备展示 */}
       <div className="relative z-10 h-full flex items-center justify-center">
-        {/* 中央充电桩 */}
+        {/* 中央充电桩 - 场站用电 */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="absolute"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
         >
           <div className="w-32 h-40 bg-gradient-to-b from-primary/80 to-primary/40 rounded-lg shadow-2xl shadow-primary/50 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/10 rounded-lg"></div>
@@ -206,12 +206,13 @@ export default function Central3DDisplay({ data }) {
         {/* 连接线画布 */}
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none"></canvas>
 
-        {/* 电流虚线十字指示器 - 位于页面正中心 */}
+        {/* 电流虚线十字指示器 - 位于场站用电圆形中心 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-20"
+          className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30"
+          style={{ transform: 'translate(-50%, calc(-50% - 3rem))' }}
         >
           <div className="relative w-8 h-8">
             {/* 水平虚线 */}
