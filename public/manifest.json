@@ -1,0 +1,37 @@
+{
+  "name": "光伏新能源路由和关断管理系统",
+  "short_name": "光伏能源管理",
+  "description": "专业的光伏新能源路由和关断管理系统，实时监控光伏发电、风力发电、储能充电等数据",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff88",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/image/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/image/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "screenshots": [
+    {
+      "src": "/image/logo.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ]
+}
+

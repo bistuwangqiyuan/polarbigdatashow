@@ -198,10 +198,11 @@ export default function EnhancedDashboard() {
             <div className="flex items-center gap-4">
               <Image
                 src="/image/logo.png"
-                alt="公司Logo"
+                alt="光伏新能源管理系统Logo - 智能能源监控平台"
                 width={60}
                 height={60}
                 className="object-contain"
+                priority
               />
               <h1 className="text-3xl font-display text-primary glow-text">
                 光伏能源关断管理系统
@@ -493,10 +494,11 @@ export default function EnhancedDashboard() {
           <div className="relative group w-full">
             <Image
               src="/image/aboutus.png"
-              alt="企业宣传"
+              alt="光伏新能源企业宣传 - 绿色能源解决方案提供商"
               width={400}
               height={160}
               className="w-full h-auto rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -512,10 +514,11 @@ export default function EnhancedDashboard() {
           <div className="relative group w-full">
             <Image
               src="/image/aboutus2.jpg"
-              alt="企业宣传"
+              alt="新能源技术展示 - 光伏与风力发电一体化管理"
               width={400}
               height={160}
               className="w-full h-auto rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
