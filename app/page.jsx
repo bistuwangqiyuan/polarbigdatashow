@@ -187,12 +187,12 @@ export default function EnhancedDashboard() {
   }
 
   return (
-    <div className="min-h-screen dashboard-bg relative overflow-hidden">
+    <div className="min-h-screen dashboard-bg relative overflow-hidden" id="main-content" role="main">
       {/* 背景装饰 */}
-      <div className="absolute inset-0 grid-bg opacity-10"></div>
+      <div className="absolute inset-0 grid-bg opacity-10" aria-hidden="true"></div>
       
       {/* 顶部标题栏 */}
-      <header className="relative z-20 border-b border-primary/30 backdrop-blur-sm">
+      <header className="relative z-20 border-b border-primary/30 backdrop-blur-sm" role="banner">
         <div className="px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -204,13 +204,14 @@ export default function EnhancedDashboard() {
                 className="object-contain"
                 priority
               />
-              <h1 className="text-3xl font-display text-primary glow-text">
+              <h1 className="text-3xl font-display text-primary glow-text" itemProp="name">
                 光伏能源关断管理系统
               </h1>
+              <p className="sr-only">专业的光伏新能源实时监控与智能管理平台，提供7x24小时光伏发电、风力发电和储能系统监控服务</p>
             </div>
             <div className="flex items-center gap-8">
               {/* 导航菜单 */}
-              <nav className="flex items-center gap-6">
+              <nav className="flex items-center gap-6" role="navigation" aria-label="主导航">
                 <Link href="/about" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   关于我们
                 </Link>
@@ -252,7 +253,7 @@ export default function EnhancedDashboard() {
       </header>
 
       {/* 主内容区 */}
-      <main className="relative z-10 h-[calc(100vh-80px)] p-6">
+      <main className="relative z-10 h-[calc(100vh-80px)] p-6" role="main" itemScope itemType="https://schema.org/Dashboard">
         <div className="h-full grid grid-cols-12 gap-6">
           {/* 左侧统计卡片 */}
           <div className="col-span-3 space-y-6">
@@ -262,8 +263,8 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="stat-card">
-                <h3 className="text-lg font-display text-primary mb-4">昨日电量与收益统计</h3>
+              <article className="stat-card" role="region" aria-label="昨日电量与收益统计">
+                <h2 className="text-lg font-display text-primary mb-4">昨日电量与收益统计</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-400">光伏发电</span>
@@ -282,7 +283,7 @@ export default function EnhancedDashboard() {
                     <span className="text-lg font-display text-warning">{mockData.yesterdayPower.grid} 元</span>
                   </div>
                 </div>
-              </div>
+              </article>
             </motion.div>
 
             {/* 电池储量统计 */}
@@ -291,8 +292,8 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <div className="stat-card">
-                <h3 className="text-lg font-display text-primary mb-4">电池储量与放电统计</h3>
+              <article className="stat-card" role="region" aria-label="电池储量与放电统计">
+                <h2 className="text-lg font-display text-primary mb-4">电池储量与放电统计</h2>
                 <div className="space-y-4">
                   <div className="relative">
                     <div className="flex justify-between items-center mb-2">
@@ -330,12 +331,12 @@ export default function EnhancedDashboard() {
                     <span className="text-lg font-display text-success">{mockData.batteryStatus.charging} L</span>
                   </div>
                 </div>
-              </div>
+              </article>
             </motion.div>
           </div>
 
           {/* 中央3D展示区 */}
-          <div className="col-span-6">
+          <section className="col-span-6" role="region" aria-label="实时能源可视化展示">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -347,18 +348,18 @@ export default function EnhancedDashboard() {
                 windPower: Math.round(dynamicData.windPower / 100) 
               }} />
             </motion.div>
-          </div>
+          </section>
 
           {/* 右侧统计卡片 */}
-          <div className="col-span-3 space-y-6">
+          <aside className="col-span-3 space-y-6" role="complementary" aria-label="实时数据统计">
             {/* 今日电量统计 */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="stat-card">
-                <h3 className="text-lg font-display text-primary mb-4">今天电量与收益统计</h3>
+              <article className="stat-card" role="region" aria-label="今天电量与收益统计">
+                <h2 className="text-lg font-display text-primary mb-4">今天电量与收益统计</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-400">光伏发电</span>
@@ -405,7 +406,7 @@ export default function EnhancedDashboard() {
                     </motion.span>
                   </div>
                 </div>
-              </div>
+              </article>
             </motion.div>
 
             {/* 风光储充数据统计 */}
@@ -414,8 +415,8 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <div className="stat-card">
-                <h3 className="text-lg font-display text-primary mb-4">风光储充数据统计</h3>
+              <article className="stat-card" role="region" aria-label="风光储充数据统计">
+                <h2 className="text-lg font-display text-primary mb-4">风光储充数据统计</h2>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="text-center">
@@ -454,9 +455,9 @@ export default function EnhancedDashboard() {
                     <span className="font-display text-primary">{mockData.windSolarStats.totalGrid.toLocaleString()} kWh</span>
                   </div>
                 </div>
-              </div>
+              </article>
             </motion.div>
-          </div>
+          </aside>
         </div>
 
         {/* 底部累计收益 */}
@@ -466,7 +467,7 @@ export default function EnhancedDashboard() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="absolute bottom-6 left-1/2 -translate-x-1/2"
         >
-          <div className="flex items-center gap-4 px-8 py-4 stat-card">
+          <aside className="flex items-center gap-4 px-8 py-4 stat-card" role="contentinfo" aria-label="累计总收益">
             <MoneyIcon />
             <div>
               <span className="text-neutral-400 mr-2">累计总收益</span>
@@ -481,7 +482,7 @@ export default function EnhancedDashboard() {
               </motion.span>
               <span className="text-lg text-warning ml-2">元</span>
             </div>
-          </div>
+          </aside>
         </motion.div>
 
         {/* 左下角企业宣传图 - 与左侧卡片对齐 */}
@@ -491,17 +492,19 @@ export default function EnhancedDashboard() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="absolute bottom-6 left-6 w-[calc(25%-1.5rem)]"
         >
-          <div className="relative group w-full">
+          <figure className="relative group w-full">
             <Image
               src="/image/aboutus.png"
-              alt="光伏新能源企业宣传 - 绿色能源解决方案提供商"
+              alt="光伏新能源企业宣传 - 绿色能源解决方案提供商，专注于光伏发电系统集成与优化"
               width={400}
               height={160}
               className="w-full h-auto rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              itemProp="image"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </div>
+            <figcaption className="sr-only">光伏新能源企业形象展示</figcaption>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true"></div>
+          </figure>
         </motion.div>
 
         {/* 右下角企业宣传图 - 与右侧卡片对齐 */}
@@ -511,17 +514,19 @@ export default function EnhancedDashboard() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="absolute bottom-6 right-6 w-[calc(25%-1.5rem)]"
         >
-          <div className="relative group w-full">
+          <figure className="relative group w-full">
             <Image
               src="/image/aboutus2.jpg"
-              alt="新能源技术展示 - 光伏与风力发电一体化管理"
+              alt="新能源技术展示 - 光伏与风力发电一体化管理，智慧能源综合解决方案"
               width={400}
               height={160}
               className="w-full h-auto rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              itemProp="image"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </div>
+            <figcaption className="sr-only">新能源技术应用展示</figcaption>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true"></div>
+          </figure>
         </motion.div>
       </main>
     </div>

@@ -3,19 +3,41 @@
   X-Content-Type-Options: nosniff
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-DNS-Prefetch-Control: on
+  Cache-Control: public, max-age=0, must-revalidate
+  Link: <https://fonts.googleapis.com>; rel=preconnect; crossorigin
+  Link: <https://fonts.gstatic.com>; rel=preconnect; crossorigin
 
 /*.js
   Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/javascript; charset=utf-8
 
 /*.css
   Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/css; charset=utf-8
 
 /image/*
   Cache-Control: public, max-age=31536000, immutable
+  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'
 
 /favicon.svg
   Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/svg+xml
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/manifest.json
+  Cache-Control: public, max-age=86400
+  Content-Type: application/manifest+json; charset=utf-8
+
+/sitemap.xml
+  Cache-Control: public, max-age=3600
+  Content-Type: application/xml; charset=utf-8
+
+/robots.txt
+  Cache-Control: public, max-age=3600
+  Content-Type: text/plain; charset=utf-8
 
