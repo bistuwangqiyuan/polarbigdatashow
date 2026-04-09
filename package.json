@@ -20,7 +20,7 @@
         "echarts-for-react": "^3.0.2",
         "framer-motion": "^11.0.3",
         "markdown-to-jsx": "^7.7.13",
-        "next": "15.5.2",
+        "next": "^15.5.15",
         "postcss": "^8.5.9",
         "react": "18.3.1",
         "react-dom": "18.3.1",
@@ -30,6 +30,6 @@
     },
     "devDependencies": {
         "eslint": "8.57.1",
-        "eslint-config-next": "15.5.2"
+        "eslint-config-next": "^15.5.15"
     }
 }
