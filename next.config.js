@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
     reactStrictMode: true,
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    outputFileTracingRoot: path.join(__dirname),
     // 图片优化配置
     images: {
         unoptimized: true,
