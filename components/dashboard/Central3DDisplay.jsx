@@ -326,7 +326,7 @@ export default function Central3DDisplay({ data }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            {data?.solarPower || 20} kW
+            {data?.solarPower || 480} W
           </motion.div>
         </div>
         <div className="absolute right-[35%] top-1/2 -translate-y-1/2 text-primary font-bold text-sm">
@@ -335,7 +335,7 @@ export default function Central3DDisplay({ data }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
-            {data?.windPower || 25} kW
+            {data?.windPower || 42} W
           </motion.div>
         </div>
       </div>
