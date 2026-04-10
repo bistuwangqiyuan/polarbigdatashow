@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Central3DDisplay from 'components/dashboard/Central3DDisplay'
 import EnhancedStatCard from 'components/dashboard/EnhancedStatCard'
 import { useRealtimeData } from 'hooks/useRealtimeData'
-import { isSupabaseConfigured } from 'lib/supabase'
+import { isDatabaseConfigured } from 'lib/db'
 
 // 图标组件
 const PowerIcon = () => (
@@ -78,10 +78,13 @@ export default function EnhancedDashboard() {
 
       // 温度：日间 15-23°C，夜间 9-14°C（天津4月典型值）
       let tempBase
-      if (h >= 6 && h < 10) tempBase = 12 + (h - 6) * 1.8
+      if (h >= 6 && h < 10) tempBase = 10 + (h - 6) * 2.25
       else if (h >= 10 && h < 15) tempBase = 19 + Math.sin((h - 10) / 5 * Math.PI) * 3.5
-      else if (h >= 15 && h < 20) tempBase = 22 - (h - 15) * 1.6
-      else tempBase = 11 + Math.sin(h / 24 * Math.PI) * 2
+      else if (h >= 15 && h < 20) tempBase = 19 - (h - 15) * 1.8
+      else {
+        const nh = h >= 20 ? h - 20 : h + 4
+        tempBase = 10 + Math.sin(nh / 10 * Math.PI) * 0.8
+      }
       const temperature = parseFloat((tempBase + (Math.random() - 0.5) * 1.2).toFixed(1))
 
       // 湿度：与温度大致反相，天津春季偏干燥 30-60%
@@ -177,11 +180,11 @@ export default function EnhancedDashboard() {
       <div className="min-h-screen dashboard-bg flex items-center justify-center">
         <div className="text-center">
           <div className="text-primary text-2xl font-display animate-pulse mb-4">
-            {!isSupabaseConfigured ? '正在启动大屏模式...' : '系统加载中...'}
+            {!isDatabaseConfigured ? '正在启动大屏模式...' : '系统加载中...'}
           </div>
-          {!isSupabaseConfigured && (
+          {!isDatabaseConfigured && (
             <div className="text-sm text-warning bg-warning/10 px-4 py-2 rounded border border-warning/30">
-              未配置 Supabase，正在使用模拟数据运行
+              未配置数据库，正在使用模拟数据运行
             </div>
           )}
         </div>
@@ -196,8 +199,8 @@ export default function EnhancedDashboard() {
         <div className="text-center">
           <div className="text-danger text-xl font-display mb-4">加载失败</div>
           <div className="text-neutral-400 text-sm mb-4">
-            {!isSupabaseConfigured 
-              ? '配置错误：请检查 Supabase 配置' 
+            {!isDatabaseConfigured 
+              ? '配置错误：请检查数据库配置' 
               : `错误信息：${error}`
             }
           </div>
@@ -266,7 +269,7 @@ export default function EnhancedDashboard() {
                 </Link>
               </nav>
               <div className="flex items-center gap-6">
-                {!isSupabaseConfigured && (
+                {!isDatabaseConfigured && (
                   <div className="px-3 py-1 text-xs bg-warning/20 text-warning border border-warning/30 rounded-full">
                     大屏模式
                   </div>

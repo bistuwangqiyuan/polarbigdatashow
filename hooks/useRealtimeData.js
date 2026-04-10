@@ -8,7 +8,7 @@ import {
   subscribeToRealtimeUpdates,
   generateMockData
 } from '../lib/dataService'
-import { isSupabaseConfigured } from '../lib/supabase'
+import { isDatabaseConfigured } from '../lib/db'
 
 export function useRealtimeData(refreshInterval = 5000) {
   const [data, setData] = useState({
@@ -54,7 +54,7 @@ export function useRealtimeData(refreshInterval = 5000) {
 
   useEffect(() => {
     // 快速初始化：如果Supabase未配置，立即生成模拟数据
-    if (!isSupabaseConfigured) {
+    if (!isDatabaseConfigured) {
       // 模拟一个短暂的延迟以显示加载状态
       setTimeout(() => {
         fetchAllData()
@@ -73,22 +73,20 @@ export function useRealtimeData(refreshInterval = 5000) {
 
     // 订阅实时更新（仅在配置了Supabase时）
     let unsubscribe = () => {}
-    if (isSupabaseConfigured) {
+    if (isDatabaseConfigured) {
       unsubscribe = subscribeToRealtimeUpdates((payload) => {
         console.log('Realtime update:', payload)
-        // 当有实时更新时，立即刷新数据
         if (!data.loading) {
           fetchAllData()
         }
       })
     }
 
-    // 生成模拟数据（仅在配置了Supabase时）
     let mockDataInterval = null
-    if (isSupabaseConfigured) {
+    if (isDatabaseConfigured) {
       mockDataInterval = setInterval(() => {
         generateMockData().catch(console.error)
-      }, 10000) // 每10秒生成一次模拟数据
+      }, 10000)
     }
 
     return () => {
