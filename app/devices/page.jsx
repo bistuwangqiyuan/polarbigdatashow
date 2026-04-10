@@ -1,12 +1,52 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
+import {
+  TIANJIN_WEATHER,
+  getTianjinDecimalHour,
+  computeArrayOutputW,
+  sampleTianjinWeatherForDemo,
+  openMeteoCodeToWeatherKey,
+  WEATHER_LABELS,
+} from 'lib/tianjinSolarSimulation'
 
 const deviceGradients = {
   '储能': 'from-emerald-800/60 via-green-900/70 to-slate-950/90',
+}
+
+const SOLAR_RATED_W = 200
+
+function applySolarAnomalyFlags(devices) {
+  const onlineSolar = devices.filter((d) => d.type === '光伏组件' && d.power > 0)
+  if (onlineSolar.length === 0) return devices
+  const avgPower = onlineSolar.reduce((s, d) => s + d.power, 0) / onlineSolar.length
+  const threshold = avgPower * 0.8
+  return devices.map((d) => {
+    if (d.type !== '光伏组件') return d
+    if (d.status === 'offline') return d
+    if (d.power <= 0) return { ...d, status: d.status === 'warning' ? 'offline' : d.status }
+    const isAnomaly = d.power < threshold
+    return { ...d, status: isAnomaly ? 'warning' : 'online' }
+  })
+}
+
+function mapSolarPowerFromWeather(devices, weatherKey) {
+  const h = getTianjinDecimalHour()
+  return devices.map((d) => {
+    if (d.type !== '光伏组件') return d
+    if (d.status === 'offline') return { ...d, power: 0, load: 0, efficiency: 0 }
+    const jitter = ((d.id % 5) - 2) * 0.01
+    const rounded = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+    return {
+      ...d,
+      power: rounded,
+      load: Math.round((rounded / SOLAR_RATED_W) * 100),
+      efficiency: parseFloat(((rounded / SOLAR_RATED_W) * 100).toFixed(1)),
+    }
+  })
 }
 
 const DeviceTypeIcon = ({ type }) => {
@@ -169,11 +209,33 @@ export default function DevicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [envTemp, setEnvTemp] = useState(18.5)
 
-  // 天津滨海泰达科技发展中心环境温度（与首页同步算法）
+  const bootRef = useRef(null)
+  if (bootRef.current === null) {
+    const w = TIANJIN_WEATHER.CLEAR
+    const base = [
+      { id: 1, name: '光伏阵列-01', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
+      { id: 2, name: '光伏阵列-02', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
+      { id: 3, name: '光伏阵列-03', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
+      { id: 4, name: '光伏阵列-04', type: '光伏组件', status: 'offline', runtime: 722, switchable: true },
+      { id: 5, name: '储能电池-01', type: '储能', status: 'online', power: 78, efficiency: 86.5, runtime: 720, load: 78 },
+      { id: 6, name: '储能电池-02', type: '储能', status: 'online', power: 72, efficiency: 85.2, runtime: 720, load: 72 },
+      { id: 7, name: '储能电池-03', type: '储能', status: 'online', power: 65, efficiency: 84.8, runtime: 720, load: 65 },
+      { id: 8, name: '储能电池-04', type: '储能', status: 'online', power: 58, efficiency: 83.6, runtime: 720, load: 58 },
+    ]
+    bootRef.current = {
+      weather: w,
+      devices: applySolarAnomalyFlags(mapSolarPowerFromWeather(base, w)),
+    }
+  }
+
+  const [weatherKey, setWeatherKey] = useState(bootRef.current.weather)
+  const [devices, setDevices] = useState(bootRef.current.devices)
+
+  // 天津滨海泰达科技发展中心：环境温度用本地钟点；光伏功率用 Asia/Shanghai 与天气联动
   useEffect(() => {
     const update = () => {
       const now = new Date()
-      const h = now.getHours() + now.getMinutes() / 60
+      const h = getTianjinDecimalHour(now)
       let tempBase
       if (h >= 6 && h < 10) tempBase = 10 + (h - 6) * 2.25
       else if (h >= 10 && h < 15) tempBase = 19 + Math.sin((h - 10) / 5 * Math.PI) * 3.5
@@ -189,47 +251,51 @@ export default function DevicesPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // 天津泰达科技发展中心：4块光伏板(200W/块) + 4块铅酸电池(100W/12V)
-  // 运行约30天 ≈ 720h
-  const [devices, setDevices] = useState([
-    { id: 1, name: '光伏阵列-01', type: '光伏组件', status: 'online',  power: 156, efficiency: 78.0, runtime: 722, load: 78, switchable: true },
-    { id: 2, name: '光伏阵列-02', type: '光伏组件', status: 'online',  power: 148, efficiency: 74.0, runtime: 722, load: 74, switchable: true },
-    { id: 3, name: '光伏阵列-03', type: '光伏组件', status: 'online',  power: 162, efficiency: 81.0, runtime: 722, load: 81, switchable: true },
-    { id: 4, name: '光伏阵列-04', type: '光伏组件', status: 'offline', power: 0,   efficiency: 0,    runtime: 722, load: 0,  switchable: true },
-    { id: 5, name: '储能电池-01', type: '储能', status: 'online', power: 78, efficiency: 86.5, runtime: 720, load: 78 },
-    { id: 6, name: '储能电池-02', type: '储能', status: 'online', power: 72, efficiency: 85.2, runtime: 720, load: 72 },
-    { id: 7, name: '储能电池-03', type: '储能', status: 'online', power: 65, efficiency: 84.8, runtime: 720, load: 65 },
-    { id: 8, name: '储能电池-04', type: '储能', status: 'online', power: 58, efficiency: 83.6, runtime: 720, load: 58 },
-  ])
-
-  // 光伏阵列异常检测：发电量 < 在线平均值的 80% → 报警
+  // 天津滨海泰达：Open-Meteo 实况天气（失败则回退随机演示）
   useEffect(() => {
-    setDevices(prev => {
-      const onlineSolar = prev.filter(d => d.type === '光伏组件' && d.power > 0)
-      if (onlineSolar.length === 0) return prev
-
-      const avgPower = onlineSolar.reduce((s, d) => s + d.power, 0) / onlineSolar.length
-      const threshold = avgPower * 0.8
-
-      return prev.map(d => {
-        if (d.type !== '光伏组件') return d
-        if (d.power <= 0) return { ...d, status: d.status === 'warning' ? 'offline' : d.status }
-        const isAnomaly = d.power < threshold
-        return { ...d, status: isAnomaly ? 'warning' : 'online' }
-      })
-    })
+    let cancelled = false
+    const applyWeather = (key) => {
+      if (cancelled) return
+      setWeatherKey(key)
+      setDevices((prev) => applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key)))
+    }
+    const load = async () => {
+      try {
+        const url =
+          'https://api.open-meteo.com/v1/forecast?latitude=39.03&longitude=117.71&current=weather_code&timezone=Asia%2FShanghai'
+        const res = await fetch(url)
+        if (!res.ok) throw new Error('weather')
+        const j = await res.json()
+        const code = j.current?.weather_code
+        if (typeof code === 'number') applyWeather(openMeteoCodeToWeatherKey(code))
+        else applyWeather(sampleTianjinWeatherForDemo())
+      } catch {
+        applyWeather(sampleTianjinWeatherForDemo())
+      }
+    }
+    load()
+    const id = setInterval(load, 10 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [])
 
-  // 每 10 秒模拟功率微调 + 重新检测异常
+  // 每 10 秒：按天津时刻与当前天气重算光伏出力，储能小幅波动；并刷新异常标记
   useEffect(() => {
     const timer = setInterval(() => {
-      setDevices(prev => {
-        const updated = prev.map(d => {
+      setDevices((prev) => {
+        const updated = prev.map((d) => {
           if (d.status === 'offline') return d
-          if (d.type === '光伏组件' && d.power > 0) {
-            const newPower = Math.max(0, d.power + (Math.random() - 0.5) * 12)
-            const rounded = Math.round(newPower)
-            return { ...d, power: rounded, load: Math.round(rounded / 200 * 100), efficiency: parseFloat((rounded / 200 * 100).toFixed(1)) }
+          if (d.type === '光伏组件') {
+            const jitter = ((d.id % 5) - 2) * 0.01
+            const rounded = computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
+            return {
+              ...d,
+              power: rounded,
+              load: Math.round((rounded / SOLAR_RATED_W) * 100),
+              efficiency: parseFloat(((rounded / SOLAR_RATED_W) * 100).toFixed(1)),
+            }
           }
           if (d.type === '储能' && d.power > 0) {
             const newPower = Math.max(0, d.power + (Math.random() - 0.5) * 4)
@@ -237,37 +303,32 @@ export default function DevicesPage() {
           }
           return d
         })
-
-        const onlineSolar = updated.filter(d => d.type === '光伏组件' && d.power > 0)
-        if (onlineSolar.length === 0) return updated
-
-        const avgPower = onlineSolar.reduce((s, d) => s + d.power, 0) / onlineSolar.length
-        const threshold = avgPower * 0.8
-
-        return updated.map(d => {
-          if (d.type !== '光伏组件' || d.power <= 0) return d
-          return { ...d, status: d.power < threshold ? 'warning' : 'online' }
-        })
+        return applySolarAnomalyFlags(updated)
       })
     }, 10000)
     return () => clearInterval(timer)
-  }, [])
+  }, [weatherKey])
 
   const toggleDeviceStatus = (deviceId) => {
-    setDevices(prevDevices =>
-      prevDevices.map(device => {
+    setDevices((prevDevices) => {
+      const next = prevDevices.map((device) => {
         if (device.id === deviceId && device.switchable) {
           const isOn = device.status === 'online' || device.status === 'warning'
           const newStatus = isOn ? 'offline' : 'online'
-          const rated = 200
-          const newPower = newStatus === 'online' ? Math.round(rated * (0.65 + Math.random() * 0.2)) : 0
-          const newLoad = newStatus === 'online' ? Math.round(newPower / rated * 100) : 0
-          const newEff = newStatus === 'online' ? parseFloat((newPower / rated * 100).toFixed(1)) : 0
+          const jitter = ((device.id % 5) - 2) * 0.01
+          const newPower =
+            newStatus === 'online'
+              ? computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
+              : 0
+          const newLoad = newStatus === 'online' ? Math.round((newPower / SOLAR_RATED_W) * 100) : 0
+          const newEff =
+            newStatus === 'online' ? parseFloat(((newPower / SOLAR_RATED_W) * 100).toFixed(1)) : 0
           return { ...device, status: newStatus, power: newPower, efficiency: newEff, load: newLoad }
         }
         return device
       })
-    )
+      return applySolarAnomalyFlags(next)
+    })
   }
 
   // 告警面板数据
@@ -318,6 +379,9 @@ export default function DevicesPage() {
                 </svg>
                 <span className="text-neutral-400">天津滨海泰达科技发展中心</span>
                 <span className="text-red-400 font-display ml-1">{envTemp}°C</span>
+                <span className="text-neutral-500 ml-2 text-xs">
+                  {WEATHER_LABELS[weatherKey] ?? weatherKey} · 东八区 · 实况天气
+                </span>
               </div>
               <span className="text-sm text-neutral-400">
                 在线设备: {devices.filter(d => d.status === 'online' || d.status === 'warning').length} / {devices.length}
