@@ -51,13 +51,12 @@ export default function EnhancedDashboard() {
 
   const [dynamicData, setDynamicData] = useState({
     solarPower: 480,
-    windPower: 42,
     batteryCharging: 52,
-    gridPower: 470,
-    efficiency: { solar: 91.8, wind: 76.5 },
-    todayGenerated: { solar: 1.82, wind: 0.28 },
+    gridPower: 428,
+    efficiency: { solar: 91.8 },
+    todayGenerated: { solar: 1.82 },
     todayCharged: 0.32,
-    todayRevenue: 1.16,
+    todayRevenue: 1.00,
     batterySOC: 72,
     batteryCapacity: 1.44
   })
@@ -110,7 +109,7 @@ export default function EnhancedDashboard() {
     return () => clearInterval(weatherTimer)
   }, [])
 
-  // 数据动态更新（每5秒）—— 800W小型电站：650W光伏 + 150W风机
+  // 数据动态更新（每5秒）—— 800W光伏电站（4×200W光伏板）
   useEffect(() => {
     const dataTimer = setInterval(() => {
       setDynamicData(prev => {
@@ -118,50 +117,38 @@ export default function EnhancedDashboard() {
         const timeDecimal = now.getHours() + now.getMinutes() / 60
         const isDaytime = timeDecimal >= 6 && timeDecimal <= 18
 
-        // 光伏功率：余弦曲线模拟日照（650W额定）
+        // 光伏功率：余弦曲线模拟日照（800W额定，4×200W）
         let solarBase = 0
         if (isDaytime) {
           const solarNoon = 12.5
           const halfDay = 6.5
           const angle = ((timeDecimal - solarNoon) / halfDay) * (Math.PI / 2)
-          solarBase = 650 * 0.85 * Math.max(0, Math.cos(angle))
+          solarBase = 800 * 0.85 * Math.max(0, Math.cos(angle))
         }
         const newSolarPower = Math.max(0, solarBase + (Math.random() - 0.5) * solarBase * 0.08)
 
-        // 风力功率：150W额定，小型风机容量因子 10-20%
-        const windBase = isDaytime ? 35 : 48
-        const newWindPower = Math.max(0, windBase + (Math.random() - 0.5) * 18)
-
-        const totalPower = newSolarPower + newWindPower
-        const batteryCharging = totalPower * (0.12 + Math.random() * 0.08)
-        const gridPower = totalPower - batteryCharging
+        const batteryCharging = newSolarPower * (0.12 + Math.random() * 0.08)
+        const gridPower = newSolarPower - batteryCharging
 
         const solarEfficiency = newSolarPower > 0
-          ? Math.min(95, 83 + (newSolarPower / 650) * 12) : 0
-        const windEfficiency = newWindPower > 0
-          ? Math.min(88, 70 + (newWindPower / 150) * 18) : 0
+          ? Math.min(95, 83 + (newSolarPower / 800) * 12) : 0
 
-        // 功率单位为 W，换算成 kWh：W × 5s / 3600s / 1000
         const solarIncrement = (newSolarPower * 5) / 3600000
-        const windIncrement = (newWindPower * 5) / 3600000
         const chargeIncrement = (batteryCharging * 5) / 3600000
-        const revenueIncrement = (solarIncrement + windIncrement) * 0.55
+        const revenueIncrement = solarIncrement * 0.55
 
         const newBatteryCapacity = Math.min(2.0, prev.batteryCapacity + chargeIncrement)
         const newBatterySOC = Math.round((newBatteryCapacity / 2.0) * 100)
 
         return {
           solarPower: Math.round(newSolarPower),
-          windPower: Math.round(newWindPower),
           batteryCharging: Math.round(batteryCharging),
           gridPower: Math.round(gridPower),
           efficiency: {
-            solar: solarEfficiency.toFixed(1),
-            wind: windEfficiency.toFixed(1)
+            solar: solarEfficiency.toFixed(1)
           },
           todayGenerated: {
-            solar: parseFloat((prev.todayGenerated.solar + solarIncrement).toFixed(2)),
-            wind: parseFloat((prev.todayGenerated.wind + windIncrement).toFixed(2))
+            solar: parseFloat((prev.todayGenerated.solar + solarIncrement).toFixed(2))
           },
           todayCharged: parseFloat((prev.todayCharged + chargeIncrement).toFixed(2)),
           todayRevenue: parseFloat((prev.todayRevenue + revenueIncrement).toFixed(2)),
@@ -215,11 +202,11 @@ export default function EnhancedDashboard() {
     )
   }
 
-  // 800W 小型电站数据（650W光伏 + 150W风机，已运行约90天）
+  // 800W 光伏电站数据（4×200W光伏板，已运行约90天）
   const mockData = {
-    yesterdayPower: { solar: 2.32, wind: 0.43, charge: 0.55, revenue: 1.51 },
+    yesterdayPower: { solar: 2.76, charge: 0.55, revenue: 1.52 },
     batteryStatus: { fuelSaved: 27.8 },
-    windSolarStats: {
+    solarStats: {
       totalGenerated: 248.6,
       totalCharge: 49.7,
       totalGrid: 124.3
@@ -248,7 +235,7 @@ export default function EnhancedDashboard() {
               <h1 className="text-2xl font-display text-primary glow-text" itemProp="name">
                 光伏能源关断管理系统
               </h1>
-              <p className="sr-only">专业的光伏新能源实时监控与智能管理平台，提供7x24小时光伏发电、风力发电和储能系统监控服务</p>
+              <p className="sr-only">专业的光伏新能源实时监控与智能管理平台，提供7x24小时光伏发电和储能系统监控服务</p>
             </div>
             <div className="flex items-center gap-8">
               <nav className="flex items-center gap-5" role="navigation" aria-label="主导航">
@@ -366,10 +353,6 @@ export default function EnhancedDashboard() {
                     <span className="text-lg font-display text-primary">{mockData.yesterdayPower.solar.toFixed(2)} kWh</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-neutral-400">风力发电</span>
-                    <span className="text-lg font-display text-primary">{mockData.yesterdayPower.wind.toFixed(2)} kWh</span>
-                  </div>
-                  <div className="flex justify-between items-center">
                     <span className="text-neutral-400">储能充电量</span>
                     <span className="text-lg font-display text-primary">{mockData.yesterdayPower.charge.toFixed(2)} kWh</span>
                   </div>
@@ -439,8 +422,7 @@ export default function EnhancedDashboard() {
               className="h-full"
             >
               <Central3DDisplay data={{ 
-                solarPower: dynamicData.solarPower, 
-                windPower: dynamicData.windPower 
+                solarPower: dynamicData.solarPower 
               }} />
             </motion.div>
           </section>
@@ -465,17 +447,6 @@ export default function EnhancedDashboard() {
                       className="text-lg font-display text-primary"
                     >
                       {dynamicData.todayGenerated.solar.toFixed(2)} kWh
-                    </motion.span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-400">风力发电</span>
-                    <motion.span 
-                      key={dynamicData.todayGenerated.wind}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-lg font-display text-primary"
-                    >
-                      {dynamicData.todayGenerated.wind.toFixed(2)} kWh
                     </motion.span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -510,44 +481,31 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <article className="stat-card" role="region" aria-label="风光储充数据统计">
-                <h2 className="text-lg font-display text-primary mb-4">风光储充数据统计</h2>
+              <article className="stat-card" role="region" aria-label="光储数据统计">
+                <h2 className="text-lg font-display text-primary mb-4">光储数据统计</h2>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center">
-                      <motion.div 
-                        key={dynamicData.solarPower}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-2xl font-display text-primary glow-text"
-                      >
-                        {dynamicData.solarPower}
-                      </motion.div>
-                      <div className="text-xs text-neutral-400">光伏功率(W)</div>
-                    </div>
-                    <div className="text-center">
-                      <motion.div 
-                        key={dynamicData.windPower}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="text-2xl font-display text-primary glow-text"
-                      >
-                        {dynamicData.windPower}
-                      </motion.div>
-                      <div className="text-xs text-neutral-400">风机功率(W)</div>
-                    </div>
+                  <div className="text-center mb-4">
+                    <motion.div 
+                      key={dynamicData.solarPower}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-3xl font-display text-primary glow-text"
+                    >
+                      {dynamicData.solarPower}
+                    </motion.div>
+                    <div className="text-xs text-neutral-400">光伏实时功率(W)</div>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-neutral-400">累计发电量</span>
-                    <span className="font-display text-primary">{mockData.windSolarStats.totalGenerated.toFixed(1)} kWh</span>
+                    <span className="font-display text-primary">{mockData.solarStats.totalGenerated.toFixed(1)} kWh</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-neutral-400">累计充电量</span>
-                    <span className="font-display text-primary">{mockData.windSolarStats.totalCharge.toFixed(1)} kWh</span>
+                    <span className="font-display text-primary">{mockData.solarStats.totalCharge.toFixed(1)} kWh</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-neutral-400">累计放电量</span>
-                    <span className="font-display text-primary">{mockData.windSolarStats.totalGrid.toFixed(1)} kWh</span>
+                    <span className="font-display text-primary">{mockData.solarStats.totalGrid.toFixed(1)} kWh</span>
                   </div>
                 </div>
               </article>
@@ -612,7 +570,7 @@ export default function EnhancedDashboard() {
           <figure className="relative group w-full">
             <Image
               src="/image/aboutus2.jpg"
-              alt="新能源技术展示 - 光伏与风力发电一体化管理，智慧能源综合解决方案"
+              alt="新能源技术展示 - 光伏储能一体化管理，智慧能源综合解决方案"
               width={400}
               height={160}
               className="w-full h-auto rounded-lg shadow-xl border border-primary/20 object-cover hover:scale-105 transition-transform duration-300"

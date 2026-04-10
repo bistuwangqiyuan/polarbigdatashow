@@ -19,28 +19,22 @@ export default function AnalyticsPage() {
           if (i < 6 || i > 18) return 0
           return Math.max(0, 100 + 50 * Math.sin((i - 6) * Math.PI / 12) + (Math.random() - 0.5) * 20)
         }),
-        wind: Array.from({ length: 24 }, () => 180 + Math.random() * 40)
       },
       week: {
         xAxis: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
         solar: [120, 132, 101, 134, 90, 230, 210],
-        wind: [220, 182, 191, 234, 290, 330, 310]
       },
       month: {
         xAxis: ['1周', '2周', '3周', '4周'],
         solar: [850, 920, 780, 1100],
-        wind: [1680, 1540, 1720, 1890]
       },
       year: {
         xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
         solar: [3200, 3800, 4200, 4800, 5200, 5800, 6000, 5900, 5200, 4400, 3600, 3100],
-        wind: [8200, 7800, 7200, 6800, 6200, 5800, 5400, 5600, 6400, 7200, 7800, 8400]
       }
     }
     
-    const config = dataConfigs[range]
-    config.total = config.solar.map((solar, i) => solar + config.wind[i])
-    return config
+    return dataConfigs[range]
   }
 
   const currentData = getDataByRange(dateRange)
@@ -62,7 +56,7 @@ export default function AnalyticsPage() {
       textStyle: { color: '#fff' }
     },
     legend: {
-      data: ['光伏发电', '风力发电', '总发电量'],
+      data: ['光伏发电'],
       textStyle: { color: '#999' },
       top: 10
     },
@@ -98,31 +92,6 @@ export default function AnalyticsPage() {
             ]
           }
         }
-      },
-      {
-        name: '风力发电',
-        type: 'line',
-        smooth: true,
-        data: currentData.wind,
-        itemStyle: { color: '#00ff88' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(0, 255, 136, 0.3)' },
-              { offset: 1, color: 'rgba(0, 255, 136, 0)' }
-            ]
-          }
-        }
-      },
-      {
-        name: '总发电量',
-        type: 'line',
-        smooth: true,
-        data: currentData.total,
-        itemStyle: { color: '#ffaa00' },
-        lineStyle: { width: 3 }
       }
     ]
   }
@@ -209,27 +178,23 @@ export default function AnalyticsPage() {
     const configs = {
       day: [
         { value: 245, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 180, name: '风力发电', itemStyle: { color: '#00ff88' } },
         { value: 120, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 95, name: '电网供电', itemStyle: { color: '#ff3366' } }
+        { value: 95, name: '自用电量', itemStyle: { color: '#ff3366' } }
       ],
       week: [
         { value: 1680, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 1260, name: '风力发电', itemStyle: { color: '#00ff88' } },
         { value: 840, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 665, name: '电网供电', itemStyle: { color: '#ff3366' } }
+        { value: 665, name: '自用电量', itemStyle: { color: '#ff3366' } }
       ],
       month: [
         { value: 6720, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 5040, name: '风力发电', itemStyle: { color: '#00ff88' } },
         { value: 3360, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 2660, name: '电网供电', itemStyle: { color: '#ff3366' } }
+        { value: 2660, name: '自用电量', itemStyle: { color: '#ff3366' } }
       ],
       year: [
         { value: 80640, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 60480, name: '风力发电', itemStyle: { color: '#00ff88' } },
         { value: 40320, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 31920, name: '电网供电', itemStyle: { color: '#ff3366' } }
+        { value: 31920, name: '自用电量', itemStyle: { color: '#ff3366' } }
       ]
     }
     return configs[range]

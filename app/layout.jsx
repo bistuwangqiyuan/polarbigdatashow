@@ -7,8 +7,8 @@ export const metadata = {
         template: '%s | 光伏新能源路由和关断管理系统',
         default: '光伏新能源路由和关断管理系统 - 智能能源监控与管理平台 | 实时数据可视化'
     },
-    description: '专业的光伏新能源路由和关断管理系统，提供7x24小时实时监控光伏发电、风力发电、储能充电数据。智能能源管理平台助力企业优化能源使用，提高发电效率95%以上，降低运维成本30%，实现绿色能源转型与碳中和目标。',
-    keywords: ['光伏能源监控', '新能源管理系统', '光伏发电监控平台', '风力发电监测', '储能系统管理', '能源管理软件', '智能电网监控', '绿色能源解决方案', '光伏电站管理', '能源数据可视化', '实时能源监控', '分布式光伏', '新能源大数据', '能源物联网', '智慧能源平台'],
+    description: '专业的光伏新能源路由和关断管理系统，提供7x24小时实时监控光伏发电、储能充电数据。智能能源管理平台助力企业优化能源使用，提高发电效率95%以上，降低运维成本30%，实现绿色能源转型与碳中和目标。',
+    keywords: ['光伏能源监控', '新能源管理系统', '光伏发电监控平台', '储能系统管理', '能源管理软件', '智能电网监控', '绿色能源解决方案', '光伏电站管理', '能源数据可视化', '实时能源监控', '分布式光伏', '新能源大数据', '能源物联网', '智慧能源平台'],
     authors: [{ name: '光伏新能源管理系统', url: 'https://polarbigdatashow.netlify.app' }],
     creator: '光伏新能源管理系统',
     publisher: '光伏新能源管理系统',
@@ -24,7 +24,7 @@ export const metadata = {
         locale: 'zh_CN',
         url: 'https://polarbigdatashow.netlify.app',
         title: '光伏新能源路由和关断管理系统 - 智能能源监控与管理平台',
-        description: '专业的光伏新能源路由和关断管理系统，实时监控光伏发电、风力发电、储能充电等数据，提供智能能源管理解决方案，提升发电效率95%以上。',
+        description: '专业的光伏新能源路由和关断管理系统，实时监控光伏发电、储能充电等数据，提供智能能源管理解决方案，提升发电效率95%以上。',
         siteName: '光伏新能源管理系统',
         images: [
             {
@@ -39,7 +39,7 @@ export const metadata = {
     twitter: {
         card: 'summary_large_image',
         title: '光伏新能源路由和关断管理系统 - 智能能源监控与管理平台',
-        description: '专业的光伏新能源路由和关断管理系统，7x24小时实时监控光伏发电、风力发电、储能充电数据，提升能源效率。',
+        description: '专业的光伏新能源路由和关断管理系统，7x24小时实时监控光伏发电、储能充电数据，提升能源效率。',
         images: ['https://polarbigdatashow.netlify.app/image/logo.png'],
         creator: '@solar_energy_system',
         site: '@solar_energy_system',
@@ -153,7 +153,7 @@ export default function RootLayout({ children }) {
                                 bestRating: '5',
                                 worstRating: '1',
                             },
-                            description: '专业的光伏新能源路由和关断管理系统，7x24小时实时监控光伏发电、风力发电、储能充电等数据，提供智能能源管理解决方案，提升发电效率95%以上。',
+                            description: '专业的光伏新能源路由和关断管理系统，7x24小时实时监控光伏发电、储能充电等数据，提供智能能源管理解决方案，提升发电效率95%以上。',
                             image: 'https://polarbigdatashow.netlify.app/image/logo.png',
                             screenshot: 'https://polarbigdatashow.netlify.app/image/logo.png',
                             url: 'https://polarbigdatashow.netlify.app',
@@ -177,7 +177,7 @@ export default function RootLayout({ children }) {
                             },
                             featureList: [
                                 '实时光伏发电监控',
-                                '风力发电数据分析',
+                                '光伏发电数据分析',
                                 '储能系统管理',
                                 '智能能源调度',
                                 '数据可视化大屏',

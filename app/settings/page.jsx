@@ -656,20 +656,20 @@ export default function SettingsPage() {
                 <p className="text-neutral-400">[2025-09-14 10:45:32] <span className="text-success">INFO</span>: 系统启动成功</p>
                 <p className="text-neutral-400">[2025-09-14 10:45:33] <span className="text-success">INFO</span>: 数据库连接已建立</p>
                 <p className="text-neutral-400">[2025-09-14 10:45:34] <span className="text-success">INFO</span>: 光伏发电模块初始化完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:35] <span className="text-success">INFO</span>: 风力发电模块初始化完成</p>
+                <p className="text-neutral-400">[2025-09-14 10:45:35] <span className="text-success">INFO</span>: 储能电池模块初始化完成</p>
                 <p className="text-neutral-400">[2025-09-14 10:45:36] <span className="text-success">INFO</span>: 储能系统模块初始化完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:37] <span className="text-warning">WARN</span>: 逆变器INV-003响应延迟 (延迟: 156ms)</p>
+                <p className="text-neutral-400">[2025-09-14 10:45:37] <span className="text-success">INFO</span>: 光伏阵列自检通过 (4/4在线)</p>
                 <p className="text-neutral-400">[2025-09-14 10:45:38] <span className="text-success">INFO</span>: 实时数据同步服务已启动</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:01] <span className="text-success">INFO</span>: 数据采集周期开始</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:02] <span className="text-success">INFO</span>: 光伏阵列数据采集完成 (2000kW)</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:03] <span className="text-success">INFO</span>: 风机数据采集完成 (2500kW)</p>
+                <p className="text-neutral-400">[2025-09-14 10:46:03] <span className="text-success">INFO</span>: 储能电池数据采集完成 (SOC: 85%)</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:04] <span className="text-success">INFO</span>: 储能系统数据采集完成 (SOC: 88%)</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:05] <span className="text-success">INFO</span>: 数据上传至云端完成</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:15] <span className="text-warning">WARN</span>: 光伏区2号组件温度偏高 (45.2°C)</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:30] <span className="text-success">INFO</span>: 执行自动清洁程序</p>
                 <p className="text-neutral-400">[2025-09-14 10:46:45] <span className="text-success">INFO</span>: 清洁程序完成，效率提升2.3%</p>
-                <p className="text-neutral-400">[2025-09-14 10:47:00] <span className="text-danger">ERROR</span>: 风机#2通信中断，尝试重连...</p>
-                <p className="text-neutral-400">[2025-09-14 10:47:05] <span className="text-success">INFO</span>: 风机#2重连成功</p>
+                <p className="text-neutral-400">[2025-09-14 10:47:00] <span className="text-warning">WARN</span>: 储能电池-03充电电流偏低 (0.8A)</p>
+                <p className="text-neutral-400">[2025-09-14 10:47:05] <span className="text-success">INFO</span>: 储能电池-03充电恢复正常 (1.2A)</p>
                 <p className="text-neutral-400">[2025-09-14 10:47:30] <span className="text-success">INFO</span>: 系统健康检查通过</p>
                 <p className="text-neutral-400">[2025-09-14 10:48:00] <span className="text-success">INFO</span>: 发电效率优化算法执行完成</p>
                 <p className="text-neutral-400">[2025-09-14 10:48:15] <span className="text-success">INFO</span>: 储能系统开始充电 (充电功率: 500kW)</p>
