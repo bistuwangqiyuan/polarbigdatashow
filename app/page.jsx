@@ -43,6 +43,12 @@ const MoneyIcon = () => (
 export default function EnhancedDashboard() {
   const { realtime, summary, inverters, alerts, trend, loading, error } = useRealtimeData()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [weatherData, setWeatherData] = useState({
+    temperature: 18.5,
+    humidity: 46,
+    lightIntensity: 42000
+  })
+
   const [dynamicData, setDynamicData] = useState({
     solarPower: 480,
     windPower: 42,
@@ -62,6 +68,43 @@ export default function EnhancedDashboard() {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  // 环境数据模拟（天津滨海新区，4月春季）
+  useEffect(() => {
+    const updateWeather = () => {
+      const now = new Date()
+      const h = now.getHours() + now.getMinutes() / 60
+
+      // 温度：日间 15-23°C，夜间 9-14°C（天津4月典型值）
+      let tempBase
+      if (h >= 6 && h < 10) tempBase = 12 + (h - 6) * 1.8
+      else if (h >= 10 && h < 15) tempBase = 19 + Math.sin((h - 10) / 5 * Math.PI) * 3.5
+      else if (h >= 15 && h < 20) tempBase = 22 - (h - 15) * 1.6
+      else tempBase = 11 + Math.sin(h / 24 * Math.PI) * 2
+      const temperature = parseFloat((tempBase + (Math.random() - 0.5) * 1.2).toFixed(1))
+
+      // 湿度：与温度大致反相，天津春季偏干燥 30-60%
+      let humBase
+      if (h >= 10 && h < 16) humBase = 34 + Math.random() * 8
+      else if (h >= 6 && h < 10) humBase = 48 - (h - 6) * 2
+      else humBase = 50 + Math.random() * 8
+      const humidity = Math.round(humBase + (Math.random() - 0.5) * 4)
+
+      // 光照度（lux）：夜间 0，日出日落 1000-5000，正午晴天 60000-80000
+      let lightBase = 0
+      if (h >= 6 && h <= 18) {
+        const solarAngle = ((h - 12) / 6) * (Math.PI / 2)
+        lightBase = 75000 * Math.max(0, Math.cos(solarAngle))
+      }
+      const lightIntensity = Math.round(Math.max(0, lightBase + (Math.random() - 0.5) * lightBase * 0.1))
+
+      setWeatherData({ temperature, humidity, lightIntensity })
+    }
+
+    updateWeather()
+    const weatherTimer = setInterval(updateWeather, 30000)
+    return () => clearInterval(weatherTimer)
   }, [])
 
   // 数据动态更新（每5秒）—— 800W小型电站：650W光伏 + 150W风机
@@ -188,25 +231,24 @@ export default function EnhancedDashboard() {
       
       {/* 顶部标题栏 */}
       <header className="relative z-20 border-b border-primary/30 backdrop-blur-sm" role="banner">
-        <div className="px-8 py-4">
+        <div className="px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Image
                 src="/image/logo.png"
                 alt="光伏新能源管理系统Logo - 智能能源监控平台"
-                width={60}
-                height={60}
+                width={50}
+                height={50}
                 className="object-contain"
                 priority
               />
-              <h1 className="text-3xl font-display text-primary glow-text" itemProp="name">
+              <h1 className="text-2xl font-display text-primary glow-text" itemProp="name">
                 光伏能源关断管理系统
               </h1>
               <p className="sr-only">专业的光伏新能源实时监控与智能管理平台，提供7x24小时光伏发电、风力发电和储能系统监控服务</p>
             </div>
             <div className="flex items-center gap-8">
-              {/* 导航菜单 */}
-              <nav className="flex items-center gap-6" role="navigation" aria-label="主导航">
+              <nav className="flex items-center gap-5" role="navigation" aria-label="主导航">
                 <Link href="/about" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   关于我们
                 </Link>
@@ -224,7 +266,6 @@ export default function EnhancedDashboard() {
                 </Link>
               </nav>
               <div className="flex items-center gap-6">
-                {/* 配置状态指示器 */}
                 {!isSupabaseConfigured && (
                   <div className="px-3 py-1 text-xs bg-warning/20 text-warning border border-warning/30 rounded-full">
                     大屏模式
@@ -245,10 +286,66 @@ export default function EnhancedDashboard() {
             </div>
           </div>
         </div>
+        {/* 地点与环境监测信息栏 */}
+        <div className="px-8 pb-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-neutral-300">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="font-medium text-primary/90">天津滨海泰达科技发展中心</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.96L13.75 4a2 2 0 00-3.5 0L3.32 16.04A2 2 0 005.07 19z" />
+                </svg>
+                <span className="text-neutral-400">温度</span>
+                <motion.span 
+                  key={weatherData.temperature}
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: 1 }}
+                  className="font-display text-red-400"
+                >
+                  {weatherData.temperature}°C
+                </motion.span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+                <span className="text-neutral-400">湿度</span>
+                <motion.span 
+                  key={weatherData.humidity}
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: 1 }}
+                  className="font-display text-blue-400"
+                >
+                  {weatherData.humidity}%
+                </motion.span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="text-neutral-400">光照度</span>
+                <motion.span 
+                  key={weatherData.lightIntensity}
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: 1 }}
+                  className="font-display text-yellow-400"
+                >
+                  {weatherData.lightIntensity.toLocaleString()} lux
+                </motion.span>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* 主内容区 */}
-      <main className="relative z-10 h-[calc(100vh-80px)] p-6" role="main" itemScope itemType="https://schema.org/Dashboard">
+      <main className="relative z-10 h-[calc(100vh-100px)] p-6" role="main" itemScope itemType="https://schema.org/Dashboard">
         <div className="h-full grid grid-cols-12 gap-6">
           {/* 左侧统计卡片 */}
           <div className="col-span-3 space-y-6">
