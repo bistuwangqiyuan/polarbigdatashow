@@ -85,9 +85,32 @@ export default function SettingsPage() {
               />
               <h1 className="text-2xl font-display text-primary glow-text">系统设置</h1>
             </div>
-            <button className="px-4 py-2 bg-success/20 text-success border border-success/30 rounded-lg hover:bg-success/30 transition-colors">
-              保存更改
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/gallery"
+                className="px-4 py-2 bg-neutral-800/80 text-neutral-200 border border-neutral-600 rounded-lg hover:border-primary/40 hover:text-primary transition-colors text-sm"
+              >
+                故障图库
+              </Link>
+              <Link
+                href="/pv-vision"
+                className="px-4 py-2 bg-neutral-800/80 text-neutral-200 border border-neutral-600 rounded-lg hover:border-primary/40 hover:text-primary transition-colors text-sm"
+              >
+                图像识别
+              </Link>
+              <Link
+                href="/alerts"
+                className="px-4 py-2 bg-neutral-800/80 text-neutral-200 border border-neutral-600 rounded-lg hover:border-primary/40 hover:text-primary transition-colors text-sm"
+              >
+                报警信息
+              </Link>
+              <button
+                type="button"
+                className="px-4 py-2 bg-success/20 text-success border border-success/30 rounded-lg hover:bg-success/30 transition-colors"
+              >
+                保存更改
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -653,33 +676,33 @@ export default function SettingsPage() {
             
             <div className="bg-black/50 rounded-lg p-4 h-[60vh] overflow-y-auto font-mono text-sm">
               <div className="space-y-1">
-                <p className="text-neutral-400">[2025-09-14 10:45:32] <span className="text-success">INFO</span>: 系统启动成功</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:33] <span className="text-success">INFO</span>: 数据库连接已建立</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:34] <span className="text-success">INFO</span>: 光伏发电模块初始化完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:35] <span className="text-success">INFO</span>: 储能电池模块初始化完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:36] <span className="text-success">INFO</span>: 储能系统模块初始化完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:37] <span className="text-success">INFO</span>: 光伏阵列自检通过 (4/4在线)</p>
-                <p className="text-neutral-400">[2025-09-14 10:45:38] <span className="text-success">INFO</span>: 实时数据同步服务已启动</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:01] <span className="text-success">INFO</span>: 数据采集周期开始</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:02] <span className="text-success">INFO</span>: 光伏阵列数据采集完成 (2000kW)</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:03] <span className="text-success">INFO</span>: 储能电池数据采集完成 (SOC: 85%)</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:04] <span className="text-success">INFO</span>: 储能系统数据采集完成 (SOC: 88%)</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:05] <span className="text-success">INFO</span>: 数据上传至云端完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:15] <span className="text-warning">WARN</span>: 光伏区2号组件温度偏高 (45.2°C)</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:30] <span className="text-success">INFO</span>: 执行自动清洁程序</p>
-                <p className="text-neutral-400">[2025-09-14 10:46:45] <span className="text-success">INFO</span>: 清洁程序完成，效率提升2.3%</p>
-                <p className="text-neutral-400">[2025-09-14 10:47:00] <span className="text-warning">WARN</span>: 储能电池-03充电电流偏低 (0.8A)</p>
-                <p className="text-neutral-400">[2025-09-14 10:47:05] <span className="text-success">INFO</span>: 储能电池-03充电恢复正常 (1.2A)</p>
-                <p className="text-neutral-400">[2025-09-14 10:47:30] <span className="text-success">INFO</span>: 系统健康检查通过</p>
-                <p className="text-neutral-400">[2025-09-14 10:48:00] <span className="text-success">INFO</span>: 发电效率优化算法执行完成</p>
-                <p className="text-neutral-400">[2025-09-14 10:48:15] <span className="text-success">INFO</span>: 储能系统开始充电 (充电功率: 500kW)</p>
-                <p className="text-neutral-400">[2025-09-14 10:48:30] <span className="text-success">INFO</span>: 数据备份任务开始</p>
-                <p className="text-neutral-400">[2025-09-14 10:48:45] <span className="text-success">INFO</span>: 数据备份完成 (大小: 2.3GB)</p>
-                <p className="text-neutral-400">[2025-09-14 10:49:00] <span className="text-success">INFO</span>: 生成日报表</p>
-                <p className="text-neutral-400">[2025-09-14 10:49:15] <span className="text-success">INFO</span>: 日报表已发送至管理员邮箱</p>
-                <p className="text-neutral-400">[2025-09-14 10:49:30] <span className="text-warning">WARN</span>: 电网电压波动检测 (波动范围: ±2.5%)</p>
-                <p className="text-neutral-400">[2025-09-14 10:49:45] <span className="text-success">INFO</span>: 启动电压稳定程序</p>
-                <p className="text-neutral-400">[2025-09-14 10:50:00] <span className="text-success">INFO</span>: 电压已稳定</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:32] <span className="text-success">INFO</span>: 系统启动成功</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:33] <span className="text-success">INFO</span>: 数据库连接已建立</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:34] <span className="text-success">INFO</span>: 光伏发电模块初始化完成</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:35] <span className="text-success">INFO</span>: 储能电池模块初始化完成</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:36] <span className="text-success">INFO</span>: 储能系统模块初始化完成</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:37] <span className="text-success">INFO</span>: 光伏阵列自检通过 (4/4在线)</p>
+                <p className="text-neutral-400">[2026-04-11 10:45:38] <span className="text-success">INFO</span>: 实时数据同步服务已启动</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:01] <span className="text-success">INFO</span>: 数据采集周期开始</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:02] <span className="text-success">INFO</span>: 光伏阵列数据采集完成 (标称 0.8kWp)</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:03] <span className="text-success">INFO</span>: 储能电池数据采集完成 (SOC: 85%)</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:04] <span className="text-success">INFO</span>: 储能系统数据采集完成 (SOC: 88%)</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:05] <span className="text-success">INFO</span>: 数据上传至云端完成</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:15] <span className="text-warning">WARN</span>: 光伏阵列-02 组件温度偏高 (38.6°C)</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:30] <span className="text-success">INFO</span>: 执行自动清洁程序</p>
+                <p className="text-neutral-400">[2026-04-11 10:46:45] <span className="text-success">INFO</span>: 清洁程序完成，效率提升2.3%</p>
+                <p className="text-neutral-400">[2026-04-11 10:47:00] <span className="text-warning">WARN</span>: 储能电池-03充电电流偏低 (0.8A)</p>
+                <p className="text-neutral-400">[2026-04-11 10:47:05] <span className="text-success">INFO</span>: 储能电池-03充电恢复正常 (1.2A)</p>
+                <p className="text-neutral-400">[2026-04-11 10:47:30] <span className="text-success">INFO</span>: 系统健康检查通过</p>
+                <p className="text-neutral-400">[2026-04-11 10:48:00] <span className="text-success">INFO</span>: 发电效率优化算法执行完成</p>
+                <p className="text-neutral-400">[2026-04-11 10:48:15] <span className="text-success">INFO</span>: 储能系统开始充电 (充电功率: 约 62W)</p>
+                <p className="text-neutral-400">[2026-04-11 10:48:30] <span className="text-success">INFO</span>: 数据备份任务开始</p>
+                <p className="text-neutral-400">[2026-04-11 10:48:45] <span className="text-success">INFO</span>: 数据备份完成 (大小: 12.6MB)</p>
+                <p className="text-neutral-400">[2026-04-11 10:49:00] <span className="text-success">INFO</span>: 生成日报表</p>
+                <p className="text-neutral-400">[2026-04-11 10:49:15] <span className="text-success">INFO</span>: 日报表已发送至管理员邮箱</p>
+                <p className="text-neutral-400">[2026-04-11 10:49:30] <span className="text-warning">WARN</span>: 电网电压波动检测 (波动范围: ±2.5%)</p>
+                <p className="text-neutral-400">[2026-04-11 10:49:45] <span className="text-success">INFO</span>: 启动电压稳定程序</p>
+                <p className="text-neutral-400">[2026-04-11 10:50:00] <span className="text-success">INFO</span>: 电压已稳定</p>
               </div>
             </div>
             

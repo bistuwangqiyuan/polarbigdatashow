@@ -189,7 +189,7 @@ export default function Central3DDisplay({ data }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            {data?.solarPower || 480} W
+            {typeof data?.solarPower === 'number' ? data.solarPower : 0} W
           </motion.div>
         </div>
       </div>

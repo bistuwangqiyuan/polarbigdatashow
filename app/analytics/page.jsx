@@ -1,426 +1,324 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import SafeECharts from '../../components/charts/SafeECharts'
+import { buildAnalyticsForRange, TIANJIN_PLANT } from 'lib/tianjinPlantAnalyticsModel'
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState('week')
-  const [selectedMetric, setSelectedMetric] = useState('power')
+  const [currentTime, setCurrentTime] = useState(() => new Date())
 
-  // 根据时间范围生成数据
-  const getDataByRange = (range) => {
-    const dataConfigs = {
-      day: {
-        xAxis: Array.from({ length: 24 }, (_, i) => `${i}:00`),
-        solar: Array.from({ length: 24 }, (_, i) => {
-          if (i < 6 || i > 18) return 0
-          return Math.max(0, 100 + 50 * Math.sin((i - 6) * Math.PI / 12) + (Math.random() - 0.5) * 20)
-        }),
-      },
-      week: {
-        xAxis: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-        solar: [120, 132, 101, 134, 90, 230, 210],
-      },
-      month: {
-        xAxis: ['1周', '2周', '3周', '4周'],
-        solar: [850, 920, 780, 1100],
-      },
-      year: {
-        xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-        solar: [3200, 3800, 4200, 4800, 5200, 5800, 6000, 5900, 5200, 4400, 3600, 3100],
-      }
-    }
-    
-    return dataConfigs[range]
-  }
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-  const currentData = getDataByRange(dateRange)
+  const pack = useMemo(() => buildAnalyticsForRange(dateRange), [dateRange])
 
-  // 发电量趋势图配置
-  const powerTrendOption = {
-    backgroundColor: 'transparent',
-    grid: {
-      top: 60,
-      left: 80,
-      right: 40,
-      bottom: 60
-    },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#00d4ff',
-      borderWidth: 1,
-      textStyle: { color: '#fff' }
-    },
-    legend: {
-      data: ['光伏发电'],
-      textStyle: { color: '#999' },
-      top: 10
-    },
-    xAxis: {
-      type: 'category',
-      data: currentData.xAxis,
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' },
-      splitLine: { show: false }
-    },
-    yAxis: {
-      type: 'value',
-      name: '发电量 (MWh)',
-      nameTextStyle: { color: '#999' },
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' },
-      splitLine: { lineStyle: { color: '#1a1a1a' } }
-    },
-    series: [
-      {
-        name: '光伏发电',
-        type: 'line',
-        smooth: true,
-        data: currentData.solar,
-        itemStyle: { color: '#00d4ff' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
-              { offset: 1, color: 'rgba(0, 212, 255, 0)' }
-            ]
-          }
-        }
-      }
-    ]
-  }
-
-  // 获取效率数据
-  const getEfficiencyData = (range) => {
-    const configs = {
-      day: {
-        xAxis: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
-        data: [85, 82, 88, 95, 93, 89, 86]
+  const powerTrendOption = useMemo(
+    () => ({
+      backgroundColor: 'transparent',
+      grid: {
+        top: 60,
+        left: 80,
+        right: 40,
+        bottom: 60,
       },
-      week: {
-        xAxis: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-        data: [88, 91, 87, 92, 94, 89, 90]
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        textStyle: { color: '#fff' },
       },
-      month: {
-        xAxis: ['第1周', '第2周', '第3周', '第4周'],
-        data: [89, 91, 93, 90]
+      legend: {
+        data: ['光伏发电'],
+        textStyle: { color: '#999' },
+        top: 10,
       },
-      year: {
-        xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-        data: [85, 87, 89, 91, 93, 94, 95, 94, 92, 90, 88, 86]
-      }
-    }
-    return configs[range]
-  }
-
-  const efficiencyData = getEfficiencyData(dateRange)
-
-  // 效率分析图配置
-  const efficiencyOption = {
-    backgroundColor: 'transparent',
-    grid: {
-      top: 40,
-      left: 60,
-      right: 40,
-      bottom: 60
-    },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#00d4ff',
-      borderWidth: 1,
-      textStyle: { color: '#fff' }
-    },
-    xAxis: {
-      type: 'category',
-      data: efficiencyData.xAxis,
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' }
-    },
-    yAxis: {
-      type: 'value',
-      name: '效率 (%)',
-      nameTextStyle: { color: '#999' },
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' },
-      splitLine: { lineStyle: { color: '#1a1a1a' } }
-    },
-    series: [{
-      type: 'line',
-      smooth: true,
-      data: efficiencyData.data,
-      itemStyle: { color: '#00ff88' },
-      areaStyle: {
-        color: {
-          type: 'linear',
-          x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(0, 255, 136, 0.3)' },
-            { offset: 1, color: 'rgba(0, 255, 136, 0)' }
-          ]
-        }
+      xAxis: {
+        type: 'category',
+        data: pack.powerTrend.xAxis,
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
+        splitLine: { show: false },
       },
-      markLine: {
-        data: [{ type: 'average', name: '平均值' }],
-        lineStyle: { color: '#ffaa00' }
-      }
-    }]
-  }
-
-  // 获取能源分布数据
-  const getDistributionData = (range) => {
-    const configs = {
-      day: [
-        { value: 245, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 120, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 95, name: '自用电量', itemStyle: { color: '#ff3366' } }
+      yAxis: {
+        type: 'value',
+        name: pack.powerTrend.yName,
+        nameTextStyle: { color: '#999' },
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
+        splitLine: { lineStyle: { color: '#1a1a1a' } },
+      },
+      series: [
+        {
+          name: '光伏发电',
+          type: 'line',
+          smooth: true,
+          data: pack.powerTrend.solar,
+          itemStyle: { color: '#00d4ff' },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+                { offset: 1, color: 'rgba(0, 212, 255, 0)' },
+              ],
+            },
+          },
+        },
       ],
-      week: [
-        { value: 1680, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 840, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 665, name: '自用电量', itemStyle: { color: '#ff3366' } }
-      ],
-      month: [
-        { value: 6720, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 3360, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 2660, name: '自用电量', itemStyle: { color: '#ff3366' } }
-      ],
-      year: [
-        { value: 80640, name: '光伏发电', itemStyle: { color: '#00d4ff' } },
-        { value: 40320, name: '储能放电', itemStyle: { color: '#ffaa00' } },
-        { value: 31920, name: '自用电量', itemStyle: { color: '#ff3366' } }
-      ]
-    }
-    return configs[range]
-  }
+    }),
+    [pack.powerTrend]
+  )
 
-  // 能源分布饼图配置
-  const distributionOption = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#00d4ff',
-      borderWidth: 1,
-      textStyle: { color: '#fff' }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 20,
-      top: 'center',
-      textStyle: { color: '#999' }
-    },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '70%'],
-      center: ['40%', '50%'],
-      data: getDistributionData(dateRange),
-      label: {
-        show: true,
-        formatter: '{b}: {d}%',
-        color: '#999'
+  const efficiencyOption = useMemo(
+    () => ({
+      backgroundColor: 'transparent',
+      grid: {
+        top: 40,
+        left: 60,
+        right: 40,
+        bottom: 60,
       },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 20,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 212, 255, 0.5)'
-        }
-      }
-    }]
-  }
-
-  // 获取热力图数据
-  const getHeatmapData = (range) => {
-    const configs = {
-      day: {
-        xAxis: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-        yAxis: ['设备组1', '设备组2', '设备组3', '设备组4'],
-        data: [
-          [0, 0, 10], [1, 0, 20], [2, 0, 30], [3, 0, 85], [4, 0, 50], [5, 0, 40],
-          [0, 1, 15], [1, 1, 25], [2, 1, 45], [3, 1, 95], [4, 1, 65], [5, 1, 45],
-          [0, 2, 20], [1, 2, 30], [2, 2, 60], [3, 2, 100], [4, 2, 70], [5, 2, 50],
-          [0, 3, 25], [1, 3, 35], [2, 3, 65], [3, 3, 90], [4, 3, 75], [5, 3, 55]
-        ]
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        textStyle: { color: '#fff' },
       },
-      week: {
-        xAxis: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-        yAxis: ['光伏区1', '光伏区2', '风电区1', '风电区2', '储能区'],
-        data: [
-          [0, 0, 70], [1, 0, 80], [2, 0, 75], [3, 0, 85], [4, 0, 90], [5, 0, 60], [6, 0, 65],
-          [0, 1, 65], [1, 1, 75], [2, 1, 70], [3, 1, 80], [4, 1, 85], [5, 1, 55], [6, 1, 60],
-          [0, 2, 85], [1, 2, 80], [2, 2, 90], [3, 2, 85], [4, 2, 88], [5, 2, 82], [6, 2, 84],
-          [0, 3, 80], [1, 3, 75], [2, 3, 85], [3, 3, 80], [4, 3, 83], [5, 3, 78], [6, 3, 80],
-          [0, 4, 50], [1, 4, 55], [2, 4, 60], [3, 4, 65], [4, 4, 70], [5, 4, 48], [6, 4, 52]
-        ]
+      xAxis: {
+        type: 'category',
+        data: pack.efficiency.xAxis,
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
       },
-      month: {
-        xAxis: ['第1周', '第2周', '第3周', '第4周'],
-        yAxis: ['光伏总计', '风电总计', '储能总计', '充电桩'],
-        data: [
-          [0, 0, 75], [1, 0, 82], [2, 0, 88], [3, 0, 85],
-          [0, 1, 82], [1, 1, 85], [2, 1, 87], [3, 1, 84],
-          [0, 2, 60], [1, 2, 65], [2, 2, 70], [3, 2, 68],
-          [0, 3, 45], [1, 3, 50], [2, 3, 55], [3, 3, 52]
-        ]
+      yAxis: {
+        type: 'value',
+        name: '效率 (%)',
+        min: 0,
+        max: 100,
+        nameTextStyle: { color: '#999' },
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
+        splitLine: { lineStyle: { color: '#1a1a1a' } },
       },
-      year: {
-        xAxis: ['Q1', 'Q2', 'Q3', 'Q4'],
-        yAxis: ['光伏系统', '风电系统', '储能系统', '整体效率'],
-        data: [
-          [0, 0, 78], [1, 0, 85], [2, 0, 92], [3, 0, 80],
-          [0, 1, 82], [1, 1, 80], [2, 1, 78], [3, 1, 85],
-          [0, 2, 65], [1, 2, 70], [2, 2, 75], [3, 2, 68],
-          [0, 3, 75], [1, 3, 78], [2, 3, 82], [3, 3, 78]
-        ]
-      }
-    }
-    return configs[range]
-  }
-
-  const heatmapConfig = getHeatmapData(dateRange)
-
-  // 获取指标数据
-  const getMetricsByRange = (range) => {
-    const configs = {
-      day: [
-        { label: '平均发电效率', value: '91.2%', change: '+1.8%', color: 'text-success' },
-        { label: '峰值功率', value: '245.8 MW', change: '+3.2%', color: 'text-success' },
-        { label: '容量系数', value: '0.72', change: '+0.8%', color: 'text-success' },
-        { label: 'ROI回报率', value: '19.8%', change: '+0.2%', color: 'text-success' }
+      series: [
+        {
+          type: 'line',
+          smooth: true,
+          data: pack.efficiency.data,
+          itemStyle: { color: '#00ff88' },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(0, 255, 136, 0.3)' },
+                { offset: 1, color: 'rgba(0, 255, 136, 0)' },
+              ],
+            },
+          },
+          markLine: {
+            data: [{ type: 'average', name: '平均值' }],
+            lineStyle: { color: '#ffaa00' },
+          },
+        },
       ],
-      week: [
-        { label: '平均发电效率', value: '92.5%', change: '+2.3%', color: 'text-success' },
-        { label: '峰值功率', value: '486.5 MW', change: '+5.8%', color: 'text-success' },
-        { label: '容量系数', value: '0.68', change: '-1.2%', color: 'text-danger' },
-        { label: 'ROI回报率', value: '19.8%', change: '+0.5%', color: 'text-success' }
-      ],
-      month: [
-        { label: '平均发电效率', value: '90.8%', change: '+0.9%', color: 'text-success' },
-        { label: '峰值功率', value: '892.3 MW', change: '+8.5%', color: 'text-success' },
-        { label: '容量系数', value: '0.65', change: '-2.1%', color: 'text-danger' },
-        { label: 'ROI回报率', value: '19.8%', change: '+1.2%', color: 'text-success' }
-      ],
-      year: [
-        { label: '平均发电效率', value: '89.5%', change: '+4.2%', color: 'text-success' },
-        { label: '峰值功率', value: '1285.6 MW', change: '+12.3%', color: 'text-success' },
-        { label: '容量系数', value: '0.70', change: '+3.5%', color: 'text-success' },
-        { label: 'ROI回报率', value: '19.8%', change: '+2.8%', color: 'text-success' }
-      ]
-    }
-    return configs[range]
-  }
+    }),
+    [pack.efficiency]
+  )
 
-  // 热力图配置
-  const heatmapOption = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      position: 'top',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderColor: '#00d4ff',
-      borderWidth: 1,
-      textStyle: { color: '#fff' }
-    },
-    grid: {
-      top: 60,
-      left: 80,
-      right: 40,
-      bottom: 60
-    },
-    xAxis: {
-      type: 'category',
-      data: heatmapConfig.xAxis,
-      splitArea: { show: true },
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' }
-    },
-    yAxis: {
-      type: 'category',
-      data: heatmapConfig.yAxis,
-      splitArea: { show: true },
-      axisLine: { lineStyle: { color: '#333' } },
-      axisLabel: { color: '#999' }
-    },
-    visualMap: {
-      min: 0,
-      max: 100,
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 10,
-      inRange: {
-        color: ['#1a1a1a', '#0066cc', '#00d4ff', '#00ff88', '#ffaa00', '#ff3366']
+  const distributionOption = useMemo(
+    () => ({
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        textStyle: { color: '#fff' },
+        formatter: '{b}: {c} kWh ({d}%)',
       },
-      textStyle: { color: '#999' }
-    },
-    series: [{
-      type: 'heatmap',
-      data: heatmapConfig.data,
-      label: { show: true, color: '#fff' },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowColor: 'rgba(0, 212, 255, 0.5)'
-        }
-      }
-    }]
-  }
+      legend: {
+        orient: 'vertical',
+        right: 20,
+        top: 'center',
+        textStyle: { color: '#999' },
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          data: pack.distribution,
+          label: {
+            show: true,
+            formatter: '{b}: {d}%',
+            color: '#999',
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 20,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 212, 255, 0.5)',
+            },
+          },
+        },
+      ],
+    }),
+    [pack.distribution]
+  )
+
+  const heatmapOption = useMemo(
+    () => ({
+      backgroundColor: 'transparent',
+      tooltip: {
+        position: 'top',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        textStyle: { color: '#fff' },
+        formatter: (p) => {
+          const triple = Array.isArray(p.value) ? p.value : p.data
+          if (!Array.isArray(triple) || triple.length < 3) return ''
+          const [xi, yi, val] = triple
+          const x = pack.heatmap.xAxis[xi] ?? xi
+          const y = pack.heatmap.yAxis[yi] ?? yi
+          return `${y} · ${x}<br/>相对出力: ${val}%`
+        },
+      },
+      grid: {
+        top: 60,
+        left: 100,
+        right: 40,
+        bottom: 60,
+      },
+      xAxis: {
+        type: 'category',
+        data: pack.heatmap.xAxis,
+        splitArea: { show: true },
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
+      },
+      yAxis: {
+        type: 'category',
+        data: pack.heatmap.yAxis,
+        splitArea: { show: true },
+        axisLine: { lineStyle: { color: '#333' } },
+        axisLabel: { color: '#999' },
+      },
+      visualMap: {
+        min: 0,
+        max: 100,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: 10,
+        inRange: {
+          color: ['#1a1a1a', '#0066cc', '#00d4ff', '#00ff88', '#ffaa00', '#ff3366'],
+        },
+        textStyle: { color: '#999' },
+        formatter: (v) => `${v}%`,
+      },
+      series: [
+        {
+          type: 'heatmap',
+          data: pack.heatmap.data,
+          label: {
+            show: true,
+            color: '#fff',
+            formatter: (p) => {
+              const triple = Array.isArray(p.value) ? p.value : p.data
+              return Array.isArray(triple) ? triple[2] : ''
+            },
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 212, 255, 0.5)',
+            },
+          },
+        },
+      ],
+    }),
+    [pack]
+  )
 
   return (
     <div className="min-h-screen dashboard-bg">
-      {/* 顶部导航 */}
       <header className="border-b border-primary/30 backdrop-blur-sm">
         <div className="px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-6">
               <Link href="/" className="text-primary hover:text-primary/80 transition-colors">
                 ← 返回主页
               </Link>
-              <Image
-                src="/image/logo.png"
-                alt="公司Logo"
-                width={50}
-                height={50}
-                className="object-contain"
-              />
-              <h1 className="text-2xl font-display text-primary glow-text">数据分析中心</h1>
+              <Image src="/image/logo.png" alt="公司Logo" width={50} height={50} className="object-contain" />
+              <div>
+                <h1 className="text-2xl font-display text-primary glow-text">数据分析中心</h1>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {TIANJIN_PLANT.siteLabel} · {TIANJIN_PLANT.panelCount}×{TIANJIN_PLANT.panelRatedW}W（合计{' '}
+                  {TIANJIN_PLANT.peakKwDc}kWp）· 天津 · 已投运约 {TIANJIN_PLANT.monthsInOperation} 个月
+                </p>
+              </div>
             </div>
-            
-            {/* 时间范围选择 */}
-            <div className="flex items-center gap-2">
-              {['day', 'week', 'month', 'year'].map(range => (
-                <button
-                  key={range}
-                  onClick={() => setDateRange(range)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    dateRange === range
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-neutral-900/50 text-neutral-400 border border-neutral-800 hover:border-primary/30'
-                  }`}
-                >
-                  {range === 'day' && '今日'}
-                  {range === 'week' && '本周'}
-                  {range === 'month' && '本月'}
-                  {range === 'year' && '本年'}
-                </button>
-              ))}
+
+            <div className="flex flex-wrap items-center justify-end gap-4 lg:gap-8">
+              <div className="flex items-center gap-2 flex-wrap">
+                {['day', 'week', 'month', 'year'].map((range) => (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={() => setDateRange(range)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      dateRange === range
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-neutral-900/50 text-neutral-400 border border-neutral-800 hover:border-primary/30'
+                    }`}
+                  >
+                    {range === 'day' && '今日'}
+                    {range === 'week' && '本周'}
+                    {range === 'month' && '本月'}
+                    {range === 'year' && '本年'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-lg font-display text-primary">
+                  {currentTime.toLocaleTimeString('zh-CN', { hour12: false })}
+                </div>
+                <div className="text-sm text-neutral-400">
+                  {currentTime.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    weekday: 'long',
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="p-8">
-        {/* 关键指标卡片 */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          {getMetricsByRange(dateRange).map((metric, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+          {pack.metrics.map((metric, index) => (
             <motion.div
-              key={index}
+              key={`${dateRange}-${metric.label}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -428,67 +326,69 @@ export default function AnalyticsPage() {
             >
               <p className="text-neutral-400 text-sm mb-2">{metric.label}</p>
               <p className="text-3xl font-display text-primary mb-1">{metric.value}</p>
-              <p className={`text-sm ${metric.color}`}>{metric.change} vs 上期</p>
+              <p className={`text-sm ${metric.color}`}>{metric.change}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* 图表网格 */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* 发电量趋势 */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
             className="stat-card"
           >
-            <h3 className="text-lg font-display text-primary mb-4">发电量趋势分析</h3>
+            <h3 className="text-lg font-display text-primary mb-1">发电量趋势分析</h3>
+            <p className="text-xs text-neutral-500 mb-4">{pack.powerFootnote}</p>
             <div className="h-80">
               <SafeECharts option={powerTrendOption} style={{ height: '100%' }} />
             </div>
           </motion.div>
 
-          {/* 效率分析 */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.1 }}
             className="stat-card"
           >
-            <h3 className="text-lg font-display text-primary mb-4">系统效率变化</h3>
+            <h3 className="text-lg font-display text-primary mb-1">系统效率变化</h3>
+            <p className="text-xs text-neutral-500 mb-4">{pack.efficiency.footnote}</p>
             <div className="h-80">
               <SafeECharts option={efficiencyOption} style={{ height: '100%' }} />
             </div>
           </motion.div>
 
-          {/* 能源分布 */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.2 }}
             className="stat-card"
           >
-            <h3 className="text-lg font-display text-primary mb-4">能源构成分析</h3>
+            <h3 className="text-lg font-display text-primary mb-1">能源去向（同一时段内）</h3>
+            <p className="text-xs text-neutral-500 mb-4">
+              光伏总发电量拆分为就地消纳、储能充电与逆变/线路损耗，单位 kWh。
+            </p>
             <div className="h-80">
               <SafeECharts option={distributionOption} style={{ height: '100%' }} />
             </div>
           </motion.div>
 
-          {/* 负荷热力图 */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.3 }}
             className="stat-card"
           >
-            <h3 className="text-lg font-display text-primary mb-4">负荷分布热力图</h3>
+            <h3 className="text-lg font-display text-primary mb-1">四块组件相对出力热力图</h3>
+            <p className="text-xs text-neutral-500 mb-4">
+              与设备管理中「光伏阵列-01～04」对应；数值为相对额定出力的百分比（演示归一化）。
+            </p>
             <div className="h-80">
               <SafeECharts option={heatmapOption} style={{ height: '100%' }} />
             </div>
           </motion.div>
         </div>
 
-        {/* 企业展示 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -497,10 +397,7 @@ export default function AnalyticsPage() {
         >
           <h3 className="text-xl font-display text-primary mb-8 text-center">企业实力</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="relative overflow-hidden rounded-xl shadow-xl"
-            >
+            <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-xl shadow-xl">
               <Image
                 src="/image/aboutus2.jpg"
                 alt="科研设施"
@@ -514,11 +411,8 @@ export default function AnalyticsPage() {
                 <p className="text-sm text-neutral-300">先进的研发实验中心</p>
               </div>
             </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="relative overflow-hidden rounded-xl shadow-xl"
-            >
+
+            <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-xl shadow-xl">
               <Image
                 src="/image/oiltank.jpg"
                 alt="储运设施"

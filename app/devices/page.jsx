@@ -12,6 +12,7 @@ import {
   openMeteoCodeToWeatherKey,
   WEATHER_LABELS,
 } from 'lib/tianjinSolarSimulation'
+import { SOLAR_REAL_FIELD_IMAGE } from 'lib/solarRealImages'
 
 const deviceGradients = {
   '储能': 'from-emerald-800/60 via-green-900/70 to-slate-950/90',
@@ -93,10 +94,10 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
       {isSolar ? (
         <>
           <Image
-            src="/image/solar1.png"
-            alt="光伏板"
+            src="/image/solarreal7.png"
+            alt={`${device.name} 实拍组件`}
             fill
-            className="object-cover"
+            className="object-cover object-center"
             sizes="(max-width: 768px) 100vw, 25vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/70 to-black/90" />
@@ -362,6 +363,12 @@ export default function DevicesPage() {
               <Link href="/" className="text-primary hover:text-primary/80 transition-colors">
                 ← 返回主页
               </Link>
+              <Link href="/gallery" className="text-sm text-neutral-400 hover:text-primary transition-colors">
+                故障图库
+              </Link>
+              <Link href="/pv-vision" className="text-sm text-neutral-400 hover:text-primary transition-colors">
+                图像识别
+              </Link>
               <Image
                 src="/image/logo.png"
                 alt="公司Logo"
@@ -392,6 +399,32 @@ export default function DevicesPage() {
       </header>
 
       <main className="p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="relative mb-8 overflow-hidden rounded-2xl border border-primary/25 shadow-lg shadow-primary/5"
+        >
+          <div className="relative h-44 sm:h-52 md:h-56 w-full">
+            <Image
+              src={SOLAR_REAL_FIELD_IMAGE}
+              alt="天津现场四块单晶 200W 光伏组件"
+              fill
+              className="object-cover object-center"
+              priority
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+            <div className="absolute inset-y-0 left-0 flex flex-col justify-center px-6 sm:px-10 max-w-xl">
+              <p className="text-xs uppercase tracking-widest text-primary/90 font-medium mb-1">现场实拍</p>
+              <h2 className="text-xl sm:text-2xl font-display text-white drop-shadow-md">4×200W 单晶子阵</h2>
+              <p className="mt-2 text-sm text-neutral-200/95 leading-relaxed">
+                与设备列表中四路子阵一一对应，卡片背景为各块组件真实照片。
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* 异常报警面板 */}
         <AnimatePresence>
           {solarAlerts.alerts.length > 0 && (
@@ -484,7 +517,7 @@ export default function DevicesPage() {
           className="mt-16 mb-8"
         >
           <h3 className="text-xl font-display text-primary mb-8 text-center">设施概览</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-xl shadow-xl">
               <Image src="/image/oilstoragetank.jpg" alt="储油设施" width={400} height={300} className="w-full h-48 object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -507,6 +540,20 @@ export default function DevicesPage() {
               <div className="absolute bottom-4 left-4 text-white">
                 <h4 className="text-lg font-medium">输送管道</h4>
                 <p className="text-sm text-neutral-300">长输管道网络</p>
+              </div>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-xl shadow-xl ring-1 ring-primary/20">
+              <Image
+                src={SOLAR_REAL_FIELD_IMAGE}
+                alt="光伏子阵现场"
+                width={400}
+                height={300}
+                className="w-full h-48 object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <h4 className="text-lg font-medium">光伏子阵</h4>
+                <p className="text-sm text-neutral-300">4×200W 单晶 · 天津现场</p>
               </div>
             </motion.div>
           </div>

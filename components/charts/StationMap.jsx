@@ -16,7 +16,7 @@ export default function StationMap({ stations = [] }) {
       },
       formatter: (params) => {
         const { name, value } = params.data
-        return `${name}<br/>装机容量: ${value[2]} MW<br/>今日发电: ${value[3]} MWh`
+        return `${name}<br/>装机容量: ${value[2]} kW<br/>今日发电: ${value[3]} kWh`
       }
     },
     geo: {
@@ -136,9 +136,7 @@ export default function StationMap({ stations = [] }) {
         }
       },
       data: [
-        { name: '北京站', value: [50, 70, 25, 120] },
-        { name: '上海站', value: [80, 40, 40, 180] },
-        { name: '深圳站', value: [75, 20, 32, 150] }
+        { name: '天津滨海泰达 0.8kWp', value: [52, 58, 8, 2.35] },
       ],
       animationDelay: (idx) => idx * 100
     }, {
@@ -155,9 +153,7 @@ export default function StationMap({ stations = [] }) {
         shadowColor: '#00ff88'
       },
       data: [
-        { name: '北京站', value: [50, 70, 25, 120] },
-        { name: '上海站', value: [80, 40, 40, 180] },
-        { name: '深圳站', value: [75, 20, 32, 150] }
+        { name: '天津滨海泰达 0.8kWp', value: [52, 58, 8, 2.35] },
       ],
       animationDelay: (idx) => idx * 100 + 500
     }]

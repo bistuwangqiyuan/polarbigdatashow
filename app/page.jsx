@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { getTianjinDecimalHour, estimateTianjinPlant800wPowerWDeterministic } from 'lib/tianjinSolarSimulation'
+import { getTypicalDailyKwhSpring, sum, getMonthWeeklyKwh } from 'lib/tianjinPlantAnalyticsModel'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -43,16 +45,22 @@ export default function EnhancedDashboard() {
     lightIntensity: 42000
   })
 
-  const [dynamicData, setDynamicData] = useState({
-    solarPower: 480,
-    batteryCharging: 52,
-    gridPower: 428,
-    efficiency: { solar: 91.8 },
-    todayGenerated: { solar: 1.82 },
-    todayCharged: 0.32,
-    todayRevenue: 1.00,
-    batterySOC: 72,
-    batteryCapacity: 1.44
+  const [dynamicData, setDynamicData] = useState(() => {
+    const sp = estimateTianjinPlant800wPowerWDeterministic()
+    const bc = Math.max(0, Math.round(sp * 0.14))
+    return {
+      solarPower: sp,
+      batteryCharging: bc,
+      gridPower: Math.max(0, sp - bc),
+      efficiency: {
+        solar: sp > 0 ? Math.min(88, 76 + (sp / 800) * 12).toFixed(1) : '0',
+      },
+      todayGenerated: { solar: 0 },
+      todayCharged: 0,
+      todayRevenue: 0,
+      batterySOC: 68,
+      batteryCapacity: 1.28,
+    }
   })
 
   // 时间更新
@@ -67,7 +75,7 @@ export default function EnhancedDashboard() {
   useEffect(() => {
     const updateWeather = () => {
       const now = new Date()
-      const h = now.getHours() + now.getMinutes() / 60
+      const h = getTianjinDecimalHour(now)
 
       // 温度：日间 15-23°C，夜间 9-14°C（天津4月典型值）
       let tempBase
@@ -108,24 +116,14 @@ export default function EnhancedDashboard() {
     const dataTimer = setInterval(() => {
       setDynamicData(prev => {
         const now = new Date()
-        const timeDecimal = now.getHours() + now.getMinutes() / 60
-        const isDaytime = timeDecimal >= 6 && timeDecimal <= 18
+        const base = estimateTianjinPlant800wPowerWDeterministic(now)
+        const newSolarPower = Math.max(0, Math.round(base + (Math.random() - 0.5) * 16))
 
-        // 光伏功率：余弦曲线模拟日照（800W额定，4×200W）
-        let solarBase = 0
-        if (isDaytime) {
-          const solarNoon = 12.5
-          const halfDay = 6.5
-          const angle = ((timeDecimal - solarNoon) / halfDay) * (Math.PI / 2)
-          solarBase = 800 * 0.85 * Math.max(0, Math.cos(angle))
-        }
-        const newSolarPower = Math.max(0, solarBase + (Math.random() - 0.5) * solarBase * 0.08)
-
-        const batteryCharging = newSolarPower * (0.12 + Math.random() * 0.08)
-        const gridPower = newSolarPower - batteryCharging
+        const batteryCharging = Math.round(newSolarPower * (0.12 + Math.random() * 0.08))
+        const gridPower = Math.max(0, newSolarPower - batteryCharging)
 
         const solarEfficiency = newSolarPower > 0
-          ? Math.min(95, 83 + (newSolarPower / 800) * 12) : 0
+          ? Math.min(88, 76 + (newSolarPower / 800) * 12) : 0
 
         const solarIncrement = (newSolarPower * 5) / 3600000
         const chargeIncrement = (batteryCharging * 5) / 3600000
@@ -135,8 +133,8 @@ export default function EnhancedDashboard() {
         const newBatterySOC = Math.round((newBatteryCapacity / 2.0) * 100)
 
         return {
-          solarPower: Math.round(newSolarPower),
-          batteryCharging: Math.round(batteryCharging),
+          solarPower: newSolarPower,
+          batteryCharging,
           gridPower: Math.round(gridPower),
           efficiency: {
             solar: solarEfficiency.toFixed(1)
@@ -153,6 +151,27 @@ export default function EnhancedDashboard() {
     }, 5000)
 
     return () => clearInterval(dataTimer)
+  }, [])
+
+  const KWH_PRICE = 0.52
+  const mockData = useMemo(() => {
+    const daily = getTypicalDailyKwhSpring()
+    const monthTotal = Math.round(sum(getMonthWeeklyKwh()) * 100) / 100
+    const ySolar = Math.round(daily * 0.97 * 100) / 100
+    return {
+      yesterdayPower: {
+        solar: ySolar,
+        charge: Math.round(ySolar * 0.15 * 100) / 100,
+        revenue: Math.round(ySolar * KWH_PRICE * 100) / 100,
+      },
+      batteryStatus: { fuelSaved: Math.round(monthTotal * 0.072 * 100) / 100 },
+      solarStats: {
+        totalGenerated: monthTotal,
+        totalCharge: Math.round(monthTotal * 0.34 * 100) / 100,
+        totalGrid: Math.round(monthTotal * 0.5 * 100) / 100,
+      },
+      baseRevenue: Math.round(monthTotal * KWH_PRICE * 100) / 100,
+    }
   }, [])
 
   // 加载状态处理
@@ -196,18 +215,6 @@ export default function EnhancedDashboard() {
     )
   }
 
-  // 800W 光伏电站数据（4×200W光伏板，已运行约90天）
-  const mockData = {
-    yesterdayPower: { solar: 2.76, charge: 0.55, revenue: 1.52 },
-    batteryStatus: { fuelSaved: 27.8 },
-    solarStats: {
-      totalGenerated: 248.6,
-      totalCharge: 49.7,
-      totalGrid: 124.3
-    },
-    baseRevenue: 135.57
-  }
-
   return (
     <div className="min-h-screen dashboard-bg relative overflow-hidden" id="main-content" role="main">
       {/* 背景装饰 */}
@@ -239,6 +246,12 @@ export default function EnhancedDashboard() {
                 <Link href="/devices" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   设备管理
                 </Link>
+                <Link href="/gallery" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  故障图库
+                </Link>
+                <Link href="/pv-vision" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  图像识别
+                </Link>
                 <Link href="/analytics" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   数据分析
                 </Link>
@@ -247,6 +260,9 @@ export default function EnhancedDashboard() {
                 </Link>
                 <Link href="/settings" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   系统设置
+                </Link>
+                <Link href="/alerts" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  报警信息
                 </Link>
               </nav>
               <div className="flex items-center gap-6">

@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - link "跳转到主内容" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - link "← 返回主页" [ref=e8] [cursor=pointer]:
+            - /url: /
+          - img "公司Logo" [ref=e9]
+          - generic [ref=e10]:
+            - heading "光伏故障图像识别" [level=1] [ref=e11]
+            - paragraph [ref=e12]: Vision API：优先 Gemini · 备选 GPT-4o · 离线启发式降级
+        - navigation [ref=e13]:
+          - link "故障图库" [ref=e14] [cursor=pointer]:
+            - /url: /gallery
+          - link "设备管理" [ref=e15] [cursor=pointer]:
+            - /url: /devices
+          - link "报警信息" [ref=e16] [cursor=pointer]:
+            - /url: /alerts
+          - generic [ref=e17]: 图像识别
+    - main [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Gemini 未配置
+          - generic [ref=e22]: GPT-4o 已配置
+          - generic [ref=e23]:
+            - text: 将
+            - code [ref=e24]: GEMINI_API_KEY
+            - text: /
+            - code [ref=e25]: OPENAI_API_KEY
+            - text: 写入 Netlify 环境变量后重新部署
+        - paragraph [ref=e26]:
+          - text: 上传组件正面照片后，服务端按顺序调用 Google Gemini Vision 与 OpenAI GPT-4o 多模态接口，输出故障类型、严重程度、维护建议及
+          - strong [ref=e27]: 归一化矩形框
+          - text: ；无密钥或请求失败时，使用浏览器端像素启发式；「全自动演示」在云端不可用时使用内置蒙尘演示数据，保证可完整走通流程。
+      - generic [ref=e28]:
+        - button "演示进行中…" [disabled] [ref=e44]
+        - generic [ref=e30] [cursor=pointer]: 上传图片分析
+        - button "清空" [disabled] [ref=e31]
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - heading "图像与框标注" [level=2] [ref=e34]
+          - generic [ref=e35]:
+            - img "分析预览" [ref=e45]
+            - generic [ref=e47]: 分析流水线运行中…
+        - generic [ref=e37]:
+          - heading "结构化结果" [level=2] [ref=e38]
+          - paragraph [ref=e39]: 暂无结果
+          - generic [ref=e40]:
+            - heading "流水线日志" [level=3] [ref=e41]
+            - generic [ref=e42]: 02:41:20 ① 加载演示图像（蒙尘典型样本 sample7.png） 02:41:24 ② 浏览器端压缩长边（减轻 Vision 请求体积） 02:41:25 ③ 调用服务端 Vision API（优先 Google Gemini，失败则 GPT-4o）
+  - alert [ref=e43]

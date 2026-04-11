@@ -69,6 +69,39 @@ export default function sitemap() {
                 },
             },
         },
+        {
+            url: `${baseUrl}/alerts`,
+            lastModified: currentDate,
+            changeFrequency: 'daily',
+            priority: 0.65,
+            alternates: {
+                languages: {
+                    'zh-CN': `${baseUrl}/alerts`,
+                },
+            },
+        },
+        {
+            url: `${baseUrl}/gallery`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.55,
+            alternates: {
+                languages: {
+                    'zh-CN': `${baseUrl}/gallery`,
+                },
+            },
+        },
+        {
+            url: `${baseUrl}/pv-vision`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority: 0.6,
+            alternates: {
+                languages: {
+                    'zh-CN': `${baseUrl}/pv-vision`,
+                },
+            },
+        },
     ];
 }
 

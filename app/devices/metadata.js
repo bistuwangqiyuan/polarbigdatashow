@@ -8,10 +8,10 @@ export const metadata = {
         url: 'https://polarbigdatashow.netlify.app/devices',
         images: [
             {
-                url: 'https://polarbigdatashow.netlify.app/image/solar1.png',
+                url: 'https://polarbigdatashow.netlify.app/image/solarreal.jpg',
                 width: 1200,
                 height: 630,
-                alt: '光伏设备监控系统',
+                alt: '天津现场 4×200W 光伏子阵',
             },
         ],
     },

@@ -31,6 +31,12 @@ export default function AboutPage() {
                 <Link href="/devices" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   设备管理
                 </Link>
+                <Link href="/gallery" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  故障图库
+                </Link>
+                <Link href="/pv-vision" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  图像识别
+                </Link>
                 <Link href="/analytics" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   数据分析
                 </Link>
@@ -39,6 +45,9 @@ export default function AboutPage() {
                 </Link>
                 <Link href="/settings" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   系统设置
+                </Link>
+                <Link href="/alerts" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
+                  报警信息
                 </Link>
               </nav>
             </div>
