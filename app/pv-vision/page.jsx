@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { fetchImageAsDataUrl, compressDataUrl } from 'lib/pvFaultImageClient'
 import { runClientSidePvHeuristic, getDemoScriptedDustReport } from 'lib/pvFaultClientAnalysis'
+
+const StreamMonitor = lazy(() => import('components/stream/StreamMonitor'))
 
 const DEMO_SAMPLE_PATH = '/image/fault-gallery/sample7.png'
 
@@ -39,7 +41,13 @@ function boxStrokeColor(sev) {
   return '#94a3b8'
 }
 
+const TABS = [
+  { id: 'image', label: '图片识别' },
+  { id: 'stream', label: '实时监控' },
+]
+
 export default function PvVisionPage() {
+  const [activeTab, setActiveTab] = useState('image')
   const [providers, setProviders] = useState(
     Object.fromEntries(PROVIDER_ORDER.map((k) => [k, false]))
   )
@@ -201,7 +209,7 @@ export default function PvVisionPage() {
               <div>
                 <h1 className="text-2xl font-display text-primary glow-text">光伏故障图像识别</h1>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Vision API 自动切换：Groq → Mistral → 智谱 → 阿里通义 → Gemini → GPT-4o
+                  图片分析 · 推流监控截帧 · 自动故障检测
                 </p>
               </div>
             </div>
@@ -222,155 +230,189 @@ export default function PvVisionPage() {
       </header>
 
       <main className="relative z-10 px-6 sm:px-8 py-8 max-w-[1400px] mx-auto space-y-8">
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            data-testid="pv-demo-full"
-            disabled={busy}
-            onClick={runFullDemo}
-            className="px-5 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 disabled:opacity-50 font-medium text-sm"
-          >
-            {busy && lastSource === 'demo' ? '演示进行中…' : '全自动演示（蒙尘样本）'}
-          </button>
-          <label className="px-5 py-2.5 rounded-xl bg-neutral-800/80 text-neutral-200 border border-neutral-600 hover:border-primary/40 cursor-pointer text-sm font-medium">
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={onPickFile} />
-            上传图片分析
-          </label>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setPreviewUrl(null)
-              setReport(null)
-              setLogLines([])
-              setPhase('idle')
-              setLastSource(null)
-            }}
-            className="px-4 py-2.5 rounded-xl border border-neutral-600 text-neutral-400 hover:text-neutral-200 text-sm"
-          >
-            清空
-          </button>
+        {/* Tab bar */}
+        <div className="flex items-center gap-1 rounded-xl border border-neutral-800 bg-neutral-950/60 p-1 w-fit">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-primary/20 text-primary border border-primary/40'
+                  : 'text-neutral-400 hover:text-neutral-200 border border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h2 className="text-lg font-display text-primary">图像与框标注</h2>
-            <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-[4/3]">
-              {previewUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={previewUrl} alt="分析预览" className="w-full h-full object-contain" />
-                  {report?.annotations?.length > 0 && (
-                    <svg
-                      className="absolute inset-0 w-full h-full pointer-events-none"
-                      viewBox="0 0 100 100"
-                      preserveAspectRatio="none"
-                      aria-hidden
-                    >
-                      {report.annotations.map((a, i) => (
-                        <g key={i}>
-                          <rect
-                            x={a.box.x * 100}
-                            y={a.box.y * 100}
-                            width={a.box.w * 100}
-                            height={a.box.h * 100}
-                            fill="rgba(0,212,255,0.06)"
-                            stroke={boxStrokeColor(a.severity)}
-                            strokeWidth={0.55}
-                            vectorEffect="non-scaling-stroke"
-                          />
-                          <title>{a.labelZh}</title>
-                        </g>
-                      ))}
-                    </svg>
-                  )}
-                </>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm p-6 text-center">
-                  点击「全自动演示」或上传图片以开始
-                </div>
-              )}
-              <AnimatePresence>
-                {phase === 'running' && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/55 flex items-center justify-center"
-                  >
-                    <div className="text-primary font-display animate-pulse">分析流水线运行中…</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        {/* Image analysis tab */}
+        {activeTab === 'image' && (
+          <>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                data-testid="pv-demo-full"
+                disabled={busy}
+                onClick={runFullDemo}
+                className="px-5 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 disabled:opacity-50 font-medium text-sm"
+              >
+                {busy && lastSource === 'demo' ? '演示进行中…' : '全自动演示（蒙尘样本）'}
+              </button>
+              <label className="px-5 py-2.5 rounded-xl bg-neutral-800/80 text-neutral-200 border border-neutral-600 hover:border-primary/40 cursor-pointer text-sm font-medium">
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={onPickFile} />
+                上传图片分析
+              </label>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setPreviewUrl(null)
+                  setReport(null)
+                  setLogLines([])
+                  setPhase('idle')
+                  setLastSource(null)
+                }}
+                className="px-4 py-2.5 rounded-xl border border-neutral-600 text-neutral-400 hover:text-neutral-200 text-sm"
+              >
+                清空
+              </button>
             </div>
-            {report?.annotations?.length > 0 && (
-              <ul className="text-xs text-neutral-400 space-y-1">
-                {report.annotations.map((a, i) => (
-                  <li key={i}>
-                    <span className="text-primary">框 {i + 1}</span>：{a.labelZh}
-                    {a.severity ? ` · ${a.severity}` : ''}（归一化 x,y,w,h = {a.box.x.toFixed(2)},{a.box.y.toFixed(2)},{a.box.w.toFixed(2)},
-                    {a.box.h.toFixed(2)}）
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-display text-primary">结构化结果</h2>
-            {report ? (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-lg border capitalize ${severityRingClass(report.severity)}`}
-                  >
-                    严重度 {report.severity}
-                  </span>
-                  <span className="text-xs text-neutral-500">评分 {(report.severityScore * 100).toFixed(0)}%</span>
-                </div>
-                <div className="stat-card">
-                  <h3 className="text-sm text-primary mb-2">摘要</h3>
-                  <p className="text-sm text-neutral-300 leading-relaxed">{report.summaryZh || '—'}</p>
-                </div>
-                <div className="stat-card">
-                  <h3 className="text-sm text-primary mb-2">故障类型</h3>
-                  {report.faultTypes?.length ? (
-                    <ul className="space-y-2">
-                      {report.faultTypes.map((f, i) => (
-                        <li key={i} className="text-sm text-neutral-300 flex justify-between gap-2">
-                          <span>{f.nameZh}</span>
-                          <span className="text-neutral-500 font-mono text-xs">
-                            {f.code}
-                            {typeof f.confidence === 'number' ? ` · ${(f.confidence * 100).toFixed(0)}%` : ''}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h2 className="text-lg font-display text-primary">图像与框标注</h2>
+                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 aspect-[4/3]">
+                  {previewUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={previewUrl} alt="分析预览" className="w-full h-full object-contain" />
+                      {report?.annotations?.length > 0 && (
+                        <svg
+                          className="absolute inset-0 w-full h-full pointer-events-none"
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
+                          aria-hidden
+                        >
+                          {report.annotations.map((a, i) => (
+                            <g key={i}>
+                              <rect
+                                x={a.box.x * 100}
+                                y={a.box.y * 100}
+                                width={a.box.w * 100}
+                                height={a.box.h * 100}
+                                fill="rgba(0,212,255,0.06)"
+                                stroke={boxStrokeColor(a.severity)}
+                                strokeWidth={0.55}
+                                vectorEffect="non-scaling-stroke"
+                              />
+                              <title>{a.labelZh}</title>
+                            </g>
+                          ))}
+                        </svg>
+                      )}
+                    </>
                   ) : (
-                    <p className="text-sm text-neutral-500">未列出明确类型（可能为正常或需更清晰图像）</p>
+                    <div className="absolute inset-0 flex items-center justify-center text-neutral-500 text-sm p-6 text-center">
+                      点击「全自动演示」或上传图片以开始
+                    </div>
                   )}
+                  <AnimatePresence>
+                    {phase === 'running' && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/55 flex items-center justify-center"
+                      >
+                        <div className="text-primary font-display animate-pulse">分析流水线运行中…</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="stat-card">
-                  <h3 className="text-sm text-primary mb-2">维护建议</h3>
-                  <ul className="list-disc list-inside text-sm text-neutral-300 space-y-1.5">
-                    {(report.maintenanceSuggestions || []).map((s, i) => (
-                      <li key={i}>{s}</li>
+                {report?.annotations?.length > 0 && (
+                  <ul className="text-xs text-neutral-400 space-y-1">
+                    {report.annotations.map((a, i) => (
+                      <li key={i}>
+                        <span className="text-primary">框 {i + 1}</span>：{a.labelZh}
+                        {a.severity ? ` · ${a.severity}` : ''}（归一化 x,y,w,h = {a.box.x.toFixed(2)},{a.box.y.toFixed(2)},{a.box.w.toFixed(2)},
+                        {a.box.h.toFixed(2)}）
+                      </li>
                     ))}
                   </ul>
-                </div>
-              </motion.div>
-            ) : (
-              <p className="text-sm text-neutral-500">暂无结果</p>
-            )}
+                )}
+              </div>
 
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 max-h-56 overflow-y-auto">
-              <h3 className="text-xs text-neutral-500 mb-2 font-medium">流水线日志</h3>
-              <pre className="text-[11px] text-neutral-400 whitespace-pre-wrap font-mono leading-relaxed">
-                {logLines.length ? logLines.join('\n') : '等待任务…'}
-              </pre>
+              <div className="space-y-4">
+                <h2 className="text-lg font-display text-primary">结构化结果</h2>
+                {report ? (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-lg border capitalize ${severityRingClass(report.severity)}`}
+                      >
+                        严重度 {report.severity}
+                      </span>
+                      <span className="text-xs text-neutral-500">评分 {(report.severityScore * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="stat-card">
+                      <h3 className="text-sm text-primary mb-2">摘要</h3>
+                      <p className="text-sm text-neutral-300 leading-relaxed">{report.summaryZh || '—'}</p>
+                    </div>
+                    <div className="stat-card">
+                      <h3 className="text-sm text-primary mb-2">故障类型</h3>
+                      {report.faultTypes?.length ? (
+                        <ul className="space-y-2">
+                          {report.faultTypes.map((f, i) => (
+                            <li key={i} className="text-sm text-neutral-300 flex justify-between gap-2">
+                              <span>{f.nameZh}</span>
+                              <span className="text-neutral-500 font-mono text-xs">
+                                {f.code}
+                                {typeof f.confidence === 'number' ? ` · ${(f.confidence * 100).toFixed(0)}%` : ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-neutral-500">未列出明确类型（可能为正常或需更清晰图像）</p>
+                      )}
+                    </div>
+                    <div className="stat-card">
+                      <h3 className="text-sm text-primary mb-2">维护建议</h3>
+                      <ul className="list-disc list-inside text-sm text-neutral-300 space-y-1.5">
+                        {(report.maintenanceSuggestions || []).map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <p className="text-sm text-neutral-500">暂无结果</p>
+                )}
+
+                <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 max-h-56 overflow-y-auto">
+                  <h3 className="text-xs text-neutral-500 mb-2 font-medium">流水线日志</h3>
+                  <pre className="text-[11px] text-neutral-400 whitespace-pre-wrap font-mono leading-relaxed">
+                    {logLines.length ? logLines.join('\n') : '等待任务…'}
+                  </pre>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
+
+        {/* Stream monitoring tab */}
+        {activeTab === 'stream' && (
+          <Suspense
+            fallback={
+              <div className="text-neutral-500 text-sm py-12 text-center">加载实时监控组件…</div>
+            }
+          >
+            <StreamMonitor />
+          </Suspense>
+        )}
       </main>
     </div>
   )

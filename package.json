@@ -10,7 +10,8 @@
         "smoke:pv-vision": "node scripts/smoke-pv-vision.mjs",
         "smoke:netlify": "node scripts/smoke-netlify.mjs",
         "test:netlify": "node scripts/smoke-netlify.mjs && node scripts/smoke-pv-vision.mjs",
-        "init-db": "node scripts/init-neon.js"
+        "init-db": "node scripts/init-neon.js",
+        "stream-server": "node scripts/stream-server.mjs"
     },
     "dependencies": {
         "@neondatabase/serverless": "^1.0.2",
@@ -22,8 +23,11 @@
         "echarts": "^5.4.3",
         "echarts-for-react": "^3.0.2",
         "framer-motion": "^11.0.3",
+        "hls.js": "^1.6.15",
         "markdown-to-jsx": "^7.7.13",
+        "mpegts.js": "^1.8.0",
         "next": "^15.5.15",
+        "node-media-server": "^4.2.4",
         "postcss": "^8.5.9",
         "react": "18.3.1",
         "react-dom": "18.3.1",

@@ -11,6 +11,18 @@
 [functions]
   directory = "netlify/functions"
 
+[[redirects]]
+  from = "/stream/*"
+  to = "http://aczv.asia/live/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/rtc/*"
+  to = "http://aczv.asia/rtc/:splat"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]
