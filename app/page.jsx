@@ -264,6 +264,9 @@ export default function EnhancedDashboard() {
                 <Link href="/alerts" className="text-neutral-400 hover:text-primary transition-colors text-sm font-medium">
                   报警信息
                 </Link>
+                <Link href="/solar-3d" className="text-primary hover:text-primary/80 transition-colors text-sm font-medium border border-primary/40 rounded-full px-3 py-0.5 bg-primary/10">
+                  3D 管理
+                </Link>
               </nav>
               <div className="flex items-center gap-6">
                 {!isDatabaseConfigured && (

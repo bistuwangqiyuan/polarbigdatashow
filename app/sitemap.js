@@ -102,6 +102,17 @@ export default function sitemap() {
                 },
             },
         },
+        {
+            url: `${baseUrl}/solar-3d`,
+            lastModified: currentDate,
+            changeFrequency: 'daily',
+            priority: 0.85,
+            alternates: {
+                languages: {
+                    'zh-CN': `${baseUrl}/solar-3d`,
+                },
+            },
+        },
     ];
 }
 
