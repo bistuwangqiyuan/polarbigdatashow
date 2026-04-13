@@ -162,7 +162,6 @@ export default function EnhancedDashboard() {
       yesterdayPower: {
         solar: ySolar,
         charge: Math.round(ySolar * 0.15 * 100) / 100,
-        revenue: Math.round(ySolar * KWH_PRICE * 100) / 100,
       },
       batteryStatus: { fuelSaved: Math.round(monthTotal * 0.072 * 100) / 100 },
       solarStats: {
@@ -170,7 +169,6 @@ export default function EnhancedDashboard() {
         totalCharge: Math.round(monthTotal * 0.34 * 100) / 100,
         totalGrid: Math.round(monthTotal * 0.5 * 100) / 100,
       },
-      baseRevenue: Math.round(monthTotal * KWH_PRICE * 100) / 100,
     }
   }, [])
 
@@ -358,8 +356,8 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <article className="stat-card" role="region" aria-label="昨日电量与收益统计">
-                <h2 className="text-lg font-display text-primary mb-4">昨日电量与收益统计</h2>
+              <article className="stat-card" role="region" aria-label="昨日电量统计">
+                <h2 className="text-lg font-display text-primary mb-4">昨日电量统计</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-400">光伏发电</span>
@@ -368,10 +366,6 @@ export default function EnhancedDashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-400">储能充电量</span>
                     <span className="text-lg font-display text-primary">{mockData.yesterdayPower.charge.toFixed(2)} kWh</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-400">昨日收益</span>
-                    <span className="text-lg font-display text-warning">{mockData.yesterdayPower.revenue.toFixed(2)} 元</span>
                   </div>
                 </div>
               </article>
@@ -526,27 +520,27 @@ export default function EnhancedDashboard() {
           </aside>
         </div>
 
-        {/* 底部累计收益 */}
+        {/* 底部累计总发电量 */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="absolute bottom-6 left-1/2 -translate-x-1/2"
         >
-          <aside className="flex items-center gap-4 px-8 py-4 stat-card" role="contentinfo" aria-label="累计总收益">
+          <aside className="flex items-center gap-4 px-8 py-4 stat-card" role="contentinfo" aria-label="累计总发电量">
             <MoneyIcon />
             <div>
-              <span className="text-neutral-400 mr-2">累计总收益</span>
+              <span className="text-neutral-400 mr-2">累计总发电量</span>
               <motion.span 
-                key={mockData.baseRevenue + dynamicData.todayRevenue}
+                key={mockData.solarStats.totalGenerated + dynamicData.todayGenerated.solar}
                 initial={{ scale: 0.9, opacity: 0.5 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
                 className="text-3xl font-display text-warning glow-text"
               >
-                {(mockData.baseRevenue + dynamicData.todayRevenue).toFixed(2)}
+                {(mockData.solarStats.totalGenerated + dynamicData.todayGenerated.solar).toFixed(2)}
               </motion.span>
-              <span className="text-lg text-warning ml-2">元</span>
+              <span className="text-lg text-warning ml-2">kWh</span>
             </div>
           </aside>
         </motion.div>

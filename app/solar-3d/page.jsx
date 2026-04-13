@@ -56,8 +56,15 @@ function generateSnapshot(weatherKey) {
   const h = getTianjinDecimalHour()
   const dayFactor = getClearSkyDayFactor(h)
 
+  const basePowers = Array.from({ length: 4 }, (_, i) =>
+    computeArrayOutputW(h, weatherKey, 200, ARRAY_JITTERS[i]),
+  )
+  const meanOfOtherThree = (basePowers[0] + basePowers[2] + basePowers[3]) / 3
+  const shadedPower = +(meanOfOtherThree * 0.7).toFixed(1)
+
   return Array.from({ length: 4 }, (_, i) => {
-    const power = computeArrayOutputW(h, weatherKey, 200, ARRAY_JITTERS[i])
+    const isLeafShadedPanel = i === 1
+    const power = isLeafShadedPanel ? shadedPower : basePowers[i]
 
     const voc = 37.5
     const voltage = dayFactor > 0
@@ -74,10 +81,12 @@ function generateSnapshot(weatherKey) {
       ? +(76 + (power / 200) * 12 + (Math.random() - 0.5) * 2).toFixed(1)
       : 0
 
-    const irradiance = Math.round(dayFactor * 1000 * (0.9 + Math.random() * 0.15))
+    const irradianceBase = Math.round(dayFactor * 1000 * (0.9 + Math.random() * 0.15))
+    const irradiance = isLeafShadedPanel ? Math.round(irradianceBase * 0.7) : irradianceBase
 
     let status = 'normal'
     if (power < 3 && dayFactor <= 0) status = 'offline'
+    else if (isLeafShadedPanel && dayFactor > 0) status = 'warning'
     else if (panelTemp > 42) status = 'warning'
     else if (Math.random() < 0.03) status = 'warning'
 

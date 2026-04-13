@@ -36,16 +36,36 @@ function applySolarAnomalyFlags(devices) {
 
 function mapSolarPowerFromWeather(devices, weatherKey) {
   const h = getTianjinDecimalHour()
+  // 先算出所有面板的基准功率（不含遮挡因子）
+  const basePowers = {}
+  devices.forEach((d) => {
+    if (d.type !== '光伏组件') return
+    if (d.status === 'offline') { basePowers[d.id] = 0; return }
+    const jitter = ((d.id % 5) - 2) * 0.01
+    basePowers[d.id] = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+  })
+
   return devices.map((d) => {
     if (d.type !== '光伏组件') return d
     if (d.status === 'offline') return { ...d, power: 0, load: 0, efficiency: 0 }
-    const jitter = ((d.id % 5) - 2) * 0.01
-    const rounded = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+
+    let power
+    if (d.id === 2) {
+      // 光伏阵列-02：树叶遮挡，功率为其余三块均值的 70%
+      const others = Object.entries(basePowers)
+        .filter(([id]) => Number(id) !== 2)
+        .map(([, p]) => p)
+      const meanOthers = others.reduce((s, p) => s + p, 0) / others.length
+      power = parseFloat((meanOthers * 0.7).toFixed(1))
+    } else {
+      power = basePowers[d.id]
+    }
+
     return {
       ...d,
-      power: rounded,
-      load: Math.round((rounded / SOLAR_RATED_W) * 100),
-      efficiency: parseFloat(((rounded / SOLAR_RATED_W) * 100).toFixed(1)),
+      power,
+      load: Math.round((power / SOLAR_RATED_W) * 100),
+      efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
     }
   })
 }
@@ -123,7 +143,9 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
 
         {device.status === 'warning' && (
           <div className="mb-3 px-3 py-1.5 bg-warning/15 border border-warning/30 rounded-lg text-xs text-warning backdrop-blur-sm">
-            ⚠ 发电量低于平均值80%，疑似异常
+            {device.id === 2
+              ? '🍃 树叶遮挡，输出功率降至均值的 70%'
+              : '⚠ 发电量低于平均值80%，疑似异常'}
           </div>
         )}
 
@@ -286,16 +308,33 @@ export default function DevicesPage() {
   useEffect(() => {
     const timer = setInterval(() => {
       setDevices((prev) => {
+        // 先计算所有面板基准功率
+        const h = getTianjinDecimalHour()
+        const basePowers = {}
+        prev.forEach((d) => {
+          if (d.type !== '光伏组件' || d.status === 'offline') { basePowers[d.id] = 0; return }
+          const jitter = ((d.id % 5) - 2) * 0.01
+          basePowers[d.id] = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+        })
+        const othersOfPanel2 = Object.entries(basePowers)
+          .filter(([id]) => Number(id) !== 2)
+          .map(([, p]) => p)
+        const meanOthers2 = othersOfPanel2.reduce((s, p) => s + p, 0) / othersOfPanel2.length
+
         const updated = prev.map((d) => {
           if (d.status === 'offline') return d
           if (d.type === '光伏组件') {
-            const jitter = ((d.id % 5) - 2) * 0.01
-            const rounded = computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
+            let power
+            if (d.id === 2) {
+              power = parseFloat((meanOthers2 * 0.7).toFixed(1))
+            } else {
+              power = basePowers[d.id]
+            }
             return {
               ...d,
-              power: rounded,
-              load: Math.round((rounded / SOLAR_RATED_W) * 100),
-              efficiency: parseFloat(((rounded / SOLAR_RATED_W) * 100).toFixed(1)),
+              power,
+              load: Math.round((power / SOLAR_RATED_W) * 100),
+              efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
             }
           }
           if (d.type === '储能' && d.power > 0) {
