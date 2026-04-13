@@ -442,8 +442,8 @@ export default function EnhancedDashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <article className="stat-card" role="region" aria-label="今天电量与收益统计">
-                <h2 className="text-lg font-display text-primary mb-4">今天电量与收益统计</h2>
+              <article className="stat-card" role="region" aria-label="今天电量统计">
+                <h2 className="text-lg font-display text-primary mb-4">今天电量统计</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-400">光伏发电</span>
@@ -465,17 +465,6 @@ export default function EnhancedDashboard() {
                       className="text-lg font-display text-primary"
                     >
                       {dynamicData.todayCharged.toFixed(2)} kWh
-                    </motion.span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-400">今日收益</span>
-                    <motion.span 
-                      key={dynamicData.todayRevenue}
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-lg font-display text-warning"
-                    >
-                      {dynamicData.todayRevenue.toFixed(2)} 元
                     </motion.span>
                   </div>
                 </div>
