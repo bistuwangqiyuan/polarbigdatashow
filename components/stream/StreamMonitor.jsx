@@ -34,10 +34,10 @@ function formatExpiry(urlStr) {
 //  Update txSecret + txTime when auth expires.
 // ──────────────────────────────────────────────
 const DEFAULT_CAMS = [
-  { id: 'cam1', label: '摄像头 1', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
-  { id: 'cam2', label: '摄像头 2', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
-  { id: 'cam3', label: '摄像头 3', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
-  { id: 'cam4', label: '摄像头 4', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
+  { id: 'cam1', label: '摄像头 1', url: 'http://aczv.asia/live/stream.m3u8' },
+  { id: 'cam2', label: '摄像头 2', url: 'http://aczv.asia/live/stream.m3u8' },
+  { id: 'cam3', label: '摄像头 3', url: 'http://aczv.asia/live/stream.m3u8' },
+  { id: 'cam4', label: '摄像头 4', url: 'http://aczv.asia/live/stream.m3u8' },
 ]
 
 const CAPTURE_INTERVAL_MS = 10_000
