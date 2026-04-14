@@ -209,14 +209,24 @@ const SAMPLE_IMAGES = [
   { label: 'sample7（热斑）',     src: '/image/fault-gallery/sample7.png' },
 ]
 
-async function loadImageAsBase64(src) {
+/** Load an image URL and return a compressed base64 data URL (max 960px wide). */
+async function loadImageAsBase64(src, maxWidth = 960) {
   const res = await fetch(src)
   const blob = await res.blob()
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
+    const img = new Image()
+    img.onload = () => {
+      const scale = img.naturalWidth > maxWidth ? maxWidth / img.naturalWidth : 1
+      const w = Math.round(img.naturalWidth * scale)
+      const h = Math.round(img.naturalHeight * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(blob)
   })
 }
 
@@ -263,11 +273,11 @@ export default function StreamMonitor() {
   const captureFrame = useCallback((videoEl) => {
     if (!videoEl || videoEl.readyState < 2 || videoEl.videoWidth === 0) return null
     const canvas = document.createElement('canvas')
-    const w = Math.min(videoEl.videoWidth, 1280)
+    const w = Math.min(videoEl.videoWidth, 960)
     const h = Math.round((w / videoEl.videoWidth) * videoEl.videoHeight)
     canvas.width = w; canvas.height = h
     canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h)
-    return canvas.toDataURL('image/jpeg', 0.85)
+    return canvas.toDataURL('image/jpeg', 0.82)
   }, [])
 
   const analyzeFrame = useCallback(async (camId, dataUrl) => {

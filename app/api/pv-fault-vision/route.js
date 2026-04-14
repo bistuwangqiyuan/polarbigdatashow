@@ -45,6 +45,18 @@ const PROVIDER_CHAIN = [
     analyze: analyzeWithGroq,
   },
   {
+    id: 'gemini',
+    label: 'Google Gemini',
+    envNames: ['GEMINI_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_AI_API_KEY'],
+    analyze: analyzeWithGemini,
+  },
+  {
+    id: 'dashscope',
+    label: '阿里通义 Qwen-VL',
+    envNames: ['DASHSCOPE_API_KEY', 'QWEN_API_KEY', 'ALIYUN_DASHSCOPE_API_KEY'],
+    analyze: analyzeWithDashScopeQwenVL,
+  },
+  {
     id: 'mistral',
     label: 'Mistral Pixtral',
     envNames: ['MISTRAL_API_KEY'],
@@ -55,18 +67,6 @@ const PROVIDER_CHAIN = [
     label: '智谱 GLM-4V',
     envNames: ['GLM_API_KEY', 'ZHIPU_API_KEY'],
     analyze: analyzeWithZhipuGLM,
-  },
-  {
-    id: 'dashscope',
-    label: '阿里通义 Qwen-VL',
-    envNames: ['DASHSCOPE_API_KEY', 'QWEN_API_KEY', 'ALIYUN_DASHSCOPE_API_KEY'],
-    analyze: analyzeWithDashScopeQwenVL,
-  },
-  {
-    id: 'gemini',
-    label: 'Google Gemini',
-    envNames: ['GEMINI_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_AI_API_KEY'],
-    analyze: analyzeWithGemini,
   },
   {
     id: 'openai',
