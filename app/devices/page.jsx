@@ -166,7 +166,7 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
         {device.status === 'warning' && (
           <div className="mb-3 px-3 py-1.5 bg-warning/15 border border-warning/30 rounded-lg text-xs text-warning backdrop-blur-sm">
             {device.occlusionInfo
-              ? `📷 AI识别：${device.occlusionInfo.type}遮挡 ${Math.round(device.occlusionInfo.ratio * 100)}%，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
+              ? `⚠ 检测到${device.occlusionInfo.type}遮挡，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
               : '⚠ 发电量低于平均值80%，疑似异常'}
           </div>
         )}
