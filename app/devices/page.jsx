@@ -264,7 +264,7 @@ export default function DevicesPage() {
       { id: 1, name: '光伏阵列-01', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
       { id: 2, name: '光伏阵列-02', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
       { id: 3, name: '光伏阵列-03', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
-      { id: 4, name: '光伏阵列-04', type: '光伏组件', status: 'offline', runtime: 722, switchable: true },
+      { id: 4, name: '光伏阵列-04', type: '光伏组件', status: 'online', runtime: 722, switchable: true },
       { id: 5, name: '储能电池-01', type: '储能', status: 'online', power: 78, efficiency: 86.5, runtime: 720, load: 78 },
       { id: 6, name: '储能电池-02', type: '储能', status: 'online', power: 72, efficiency: 85.2, runtime: 720, load: 72 },
       { id: 7, name: '储能电池-03', type: '储能', status: 'online', power: 65, efficiency: 84.8, runtime: 720, load: 65 },
