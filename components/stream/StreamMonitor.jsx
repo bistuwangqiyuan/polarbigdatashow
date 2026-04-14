@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ──────────────────────────────────────────────
@@ -605,11 +606,17 @@ export default function StreamMonitor() {
             <span className="text-lg">✅</span>
             <div>
               <p className="text-sm text-emerald-400 font-semibold">图像识别运行正常</p>
-              <p className="text-xs text-emerald-400/70">摄像头 1 截帧已成功发送至 AI 进行故障分析，结果显示在画面下方</p>
+              <p className="text-xs text-emerald-400/70">摄像头 1 截帧已成功发送至 AI 进行故障分析，识别结果已同步至设备管理页面</p>
             </div>
+            <Link
+              href="/devices"
+              className="shrink-0 px-3 py-1 rounded-lg text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 transition-colors font-medium"
+            >
+              查看设备管理 →
+            </Link>
             <button
               onClick={() => setRecognitionToast('hidden')}
-              className="ml-auto text-emerald-400/60 hover:text-emerald-400 text-lg leading-none"
+              className="text-emerald-400/60 hover:text-emerald-400 text-lg leading-none"
             >
               ×
             </button>
@@ -646,6 +653,12 @@ export default function StreamMonitor() {
           )
         )}
 
+        <Link
+          href="/devices"
+          className="px-4 py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium transition-colors"
+        >
+          设备管理 →
+        </Link>
         <button type="button" onClick={() => setShowConfig((v) => !v)}
           className="px-4 py-2.5 rounded-xl border border-neutral-600 text-neutral-400 hover:text-neutral-200 text-sm">
           {showConfig ? '收起配置' : '流地址配置'}
