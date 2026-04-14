@@ -217,10 +217,12 @@ export default function StreamMonitor() {
   const [cameras, setCameras] = useState(() => DEFAULT_CAMS.map((c) => ({ ...c })))
   const [monitoring, setMonitoring] = useState(false)
   const [capturingActive, setCapturingActive] = useState(true)   // auto-capture on/off
-  const [showConfig, setShowConfig] = useState(true)
+  const [showConfig, setShowConfig] = useState(false)             // hide by default – URL pre-configured
   const [showAuth, setShowAuth] = useState(false)
   const [intervalSec, setIntervalSec] = useState(CAPTURE_INTERVAL_MS / 1000)
   const [sampleIdx, setSampleIdx] = useState(0)                   // for sample-based test
+  const [recognitionToast, setRecognitionToast] = useState(null)  // null | 'show' | 'hidden'
+  const recognitionFirstTime = useRef(true)                       // show toast only once
 
   const camStates = useRef(new Map())
   const [, forceRender] = useState(0)
@@ -270,8 +272,14 @@ export default function StreamMonitor() {
         body: JSON.stringify({ imageBase64: dataUrl, mimeType: 'image/jpeg' }),
       })
       const j = await res.json()
-      if (j?.ok && j?.report) { cs.report = j.report; cs.error = null }
-      else { cs.report = null; cs.error = j?.message || j?.code || 'unknown' }
+      if (j?.ok && j?.report) {
+        cs.report = j.report; cs.error = null
+        if (camId === 'cam1' && recognitionFirstTime.current) {
+          recognitionFirstTime.current = false
+          setRecognitionToast('show')
+          setTimeout(() => setRecognitionToast('hidden'), 5000)
+        }
+      } else { cs.report = null; cs.error = j?.message || j?.code || 'unknown' }
       cs.analyzeCount++
     } catch (e) {
       cs.error = e?.message || 'fetch error'; cs.report = null
@@ -393,11 +401,14 @@ export default function StreamMonitor() {
         cs.player = { type: 'mpegts', instance: player }
       }
 
-      const intervalMs = (intervalSec || 10) * 1000
-      cs.captureTimer = window.setInterval(() => {
-        const frame = captureFrame(videoEl)
-        if (frame) analyzeFrame(cam.id, frame)
-      }, intervalMs)
+      // Only cam1 performs automatic frame capture & recognition
+      if (cam.id === 'cam1') {
+        const intervalMs = (intervalSec || 10) * 1000
+        cs.captureTimer = window.setInterval(() => {
+          const frame = captureFrame(videoEl)
+          if (frame) analyzeFrame(cam.id, frame)
+        }, intervalMs)
+      }
 
       rerender()
     } catch (e) {
@@ -543,6 +554,28 @@ export default function StreamMonitor() {
             </button>
           </motion.div>
         )}
+        {/* ── Recognition Ready Toast ── */}
+        {recognitionToast === 'show' && (
+          <motion.div
+            key="recognition-toast"
+            initial={{ opacity: 0, y: -10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10"
+          >
+            <span className="text-lg">✅</span>
+            <div>
+              <p className="text-sm text-emerald-400 font-semibold">图像识别运行正常</p>
+              <p className="text-xs text-emerald-400/70">摄像头 1 截帧已成功发送至 AI 进行故障分析，结果显示在画面下方</p>
+            </div>
+            <button
+              onClick={() => setRecognitionToast('hidden')}
+              className="ml-auto text-emerald-400/60 hover:text-emerald-400 text-lg leading-none"
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* ── Toolbar ── */}
@@ -631,9 +664,9 @@ export default function StreamMonitor() {
         </motion.div>
       )}
 
-      {/* ── Sample-based offline test ── */}
+      {/* ── Sample-based offline test (cam1 only) ── */}
       <div className="flex flex-wrap items-center gap-3 px-1">
-        <span className="text-xs text-neutral-500">离线测试（无视频流时）:</span>
+        <span className="text-xs text-neutral-500">摄像头1离线识别测试:</span>
         <select
           value={sampleIdx}
           onChange={(e) => setSampleIdx(Number(e.target.value))}
@@ -643,16 +676,13 @@ export default function StreamMonitor() {
             <option key={i} value={i}>{s.label}</option>
           ))}
         </select>
-        {cameras.map((cam) => (
-          <button
-            key={cam.id}
-            type="button"
-            onClick={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx].src)}
-            className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/40 hover:bg-purple-500/30 text-xs transition-colors"
-          >
-            {cam.label} 识别
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => testWithSample('cam1', SAMPLE_IMAGES[sampleIdx].src)}
+          className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/40 hover:bg-purple-500/30 text-xs transition-colors"
+        >
+          摄像头 1 识别
+        </button>
       </div>
 
       {/* ── Camera Grid ── */}
@@ -662,8 +692,9 @@ export default function StreamMonitor() {
             key={cam.id}
             cam={cam}
             state={getCamState(cam.id)}
-            onCaptureNow={() => captureNow(cam.id)}
-            onTestSample={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx])}
+            showRecognition={cam.id === 'cam1'}
+            onCaptureNow={cam.id === 'cam1' ? () => captureNow(cam.id) : undefined}
+            onTestSample={cam.id === 'cam1' ? () => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx].src) : undefined}
           />
         ))}
       </div>
@@ -674,7 +705,7 @@ export default function StreamMonitor() {
 // ──────────────────────────────────────────────
 //  CameraPanel
 // ──────────────────────────────────────────────
-function CameraPanel({ cam, state, onCaptureNow, onTestSample }) {
+function CameraPanel({ cam, state, showRecognition, onCaptureNow, onTestSample }) {
   const statusLabel = {
     idle: '未连接', connecting: '连接中…', playing: '播放中',
     analyzing: '识别中…', error: '连接失败', ended: '流已断开',
@@ -698,31 +729,35 @@ function CameraPanel({ cam, state, onCaptureNow, onTestSample }) {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {state.report && (
+          {showRecognition && state.report && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${severityBadgeClass(state.report.severity)}`}>
               {state.report.severity}
             </span>
           )}
-          {/* Manual capture button – only works when video is playing */}
-          <button
-            type="button"
-            onClick={onCaptureNow}
-            disabled={state.status === 'analyzing'}
-            title="立即截取当前视频帧并识别"
-            className="px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary/80 border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-40"
-          >
-            📷 截帧
-          </button>
-          {/* Sample-image test button */}
-          <button
-            type="button"
-            onClick={onTestSample}
-            disabled={state.status === 'analyzing'}
-            title="用样本故障图测试识别 API（无需视频流）"
-            className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors disabled:opacity-40"
-          >
-            🧪 样本
-          </button>
+          {showRecognition && (
+            <>
+              {/* Manual capture button – only works when video is playing */}
+              <button
+                type="button"
+                onClick={onCaptureNow}
+                disabled={state.status === 'analyzing'}
+                title="立即截取当前视频帧并识别"
+                className="px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary/80 border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-40"
+              >
+                📷 截帧
+              </button>
+              {/* Sample-image test button */}
+              <button
+                type="button"
+                onClick={onTestSample}
+                disabled={state.status === 'analyzing'}
+                title="用样本故障图测试识别 API（无需视频流）"
+                className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors disabled:opacity-40"
+              >
+                🧪 样本
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -783,7 +818,7 @@ function CameraPanel({ cam, state, onCaptureNow, onTestSample }) {
         )}
       </div>
 
-      {state.report && (
+      {showRecognition && state.report && (
         <div className="px-3 py-2 border-t border-white/5 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             {state.report.faultTypes?.map((f, i) => (
