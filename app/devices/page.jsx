@@ -191,13 +191,6 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
           </span>
         </div>
 
-        {device.status === 'warning' && (
-          <div className="mb-3 px-3 py-1.5 bg-warning/15 border border-warning/30 rounded-lg text-xs text-warning backdrop-blur-sm">
-            {device.occlusionInfo
-              ? `⚠ 检测到${device.occlusionInfo.type}遮挡，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
-              : '⚠ 发电量低于平均值80%且偏差超过10W，疑似异常'}
-          </div>
-        )}
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
