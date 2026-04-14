@@ -275,9 +275,9 @@ function AdminDashboard({ onLogout }) {
           </div>
         </div>
 
-        {/* Panel cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {PV_PANELS.map((panel) => (
+        {/* Panel cards — 一排四列，从右到左为1~4号（与摄像头视角一致） */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...PV_PANELS].reverse().map((panel) => (
             <PanelControlCard
               key={panel.id}
               panel={panel}
