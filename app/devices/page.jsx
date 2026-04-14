@@ -295,7 +295,7 @@ export default function DevicesPage() {
       setEnvTemp(parseFloat((tempBase + (Math.random() - 0.5) * 1.2).toFixed(1)))
     }
     update()
-    const timer = setInterval(update, 30000)
+    const timer = setInterval(update, 10000)
     return () => clearInterval(timer)
   }, [])
 
