@@ -7,6 +7,7 @@ import {
   analyzeWithGemini,
   analyzeWithOpenAI,
 } from 'lib/pvFaultVisionServer'
+import { PV_PANEL_OCCLUSION_INSTRUCTION, normalizePanelOcclusionReport } from 'lib/pvFaultVisionSchema'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -130,9 +131,14 @@ export async function POST(request) {
       )
     }
 
+    // Build extra opts for panel_occlusion mode
+    const analyzeOpts = body?.mode === 'panel_occlusion'
+      ? { customPrompt: PV_PANEL_OCCLUSION_INSTRUCTION, normalizer: normalizePanelOcclusionReport }
+      : {}
+
     const tried = []
     for (const p of available) {
-      const result = await p.analyze(b64, mimeType, p.key)
+      const result = await p.analyze(b64, mimeType, p.key, analyzeOpts)
       if (result.ok) {
         return NextResponse.json({
           ok: true,

@@ -269,7 +269,7 @@ export default function StreamMonitor() {
       const res = await fetch('/api/pv-fault-vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: dataUrl, mimeType: 'image/jpeg' }),
+        body: JSON.stringify({ imageBase64: dataUrl, mimeType: 'image/jpeg', mode: 'panel_occlusion' }),
       })
       const j = await res.json()
       if (j?.ok && j?.report) {
@@ -730,9 +730,19 @@ function CameraPanel({ cam, state, showRecognition, onCaptureNow, onTestSample }
         </div>
         <div className="flex items-center gap-1.5">
           {showRecognition && state.report && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${severityBadgeClass(state.report.severity)}`}>
-              {state.report.severity}
-            </span>
+            state.report.mode === 'panel_occlusion' ? (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                state.report.anyOccluded
+                  ? 'text-danger border-danger/50 bg-danger/10'
+                  : 'text-success border-success/50 bg-success/10'
+              }`}>
+                {state.report.anyOccluded ? '有遮挡' : '正常'}
+              </span>
+            ) : (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${severityBadgeClass(state.report.severity)}`}>
+                {state.report.severity}
+              </span>
+            )
           )}
           {showRecognition && (
             <>
@@ -819,17 +829,55 @@ function CameraPanel({ cam, state, showRecognition, onCaptureNow, onTestSample }
       </div>
 
       {showRecognition && state.report && (
-        <div className="px-3 py-2 border-t border-white/5 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {state.report.faultTypes?.map((f, i) => (
-              <span key={i} className="text-[10px] text-neutral-300 bg-neutral-800 px-1.5 py-0.5 rounded">
-                {f.nameZh}{typeof f.confidence === 'number' ? ` ${(f.confidence * 100).toFixed(0)}%` : ''}
-              </span>
-            ))}
-            <span className="text-[10px] text-neutral-500 ml-auto">#{state.analyzeCount}</span>
-          </div>
-          {state.report.summaryZh && (
-            <p className="text-[10px] text-neutral-400 leading-relaxed line-clamp-2">{state.report.summaryZh}</p>
+        <div className="px-3 py-2 border-t border-white/5 space-y-2">
+          {/* ── Per-panel occlusion grid ── */}
+          {state.report.mode === 'panel_occlusion' && Array.isArray(state.report.panels) ? (
+            <>
+              <div className="grid grid-cols-4 gap-1.5">
+                {state.report.panels.map((p) => (
+                  <div key={p.id}
+                    className={`rounded-lg px-2 py-1.5 text-center border ${
+                      p.occluded
+                        ? 'bg-danger/15 border-danger/40'
+                        : 'bg-success/10 border-success/30'
+                    }`}
+                  >
+                    <div className="text-[10px] font-semibold text-neutral-300 mb-0.5">板{p.id}</div>
+                    {p.occluded ? (
+                      <>
+                        <div className="text-[10px] text-danger font-medium">
+                          ⚠ {p.type || '遮挡'}
+                        </div>
+                        <div className="text-[9px] text-danger/70">
+                          {(p.ratio * 100).toFixed(0)}%
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-success">✓ 正常</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-neutral-400 leading-relaxed line-clamp-2 flex-1 mr-2">
+                  {state.report.summaryZh}
+                </p>
+                <span className="text-[10px] text-neutral-600 shrink-0">#{state.analyzeCount}</span>
+              </div>
+            </>
+          ) : (
+            /* fallback for old-style reports */
+            <div className="flex flex-wrap items-center gap-2">
+              {state.report.faultTypes?.map((f, i) => (
+                <span key={i} className="text-[10px] text-neutral-300 bg-neutral-800 px-1.5 py-0.5 rounded">
+                  {f.nameZh}{typeof f.confidence === 'number' ? ` ${(f.confidence * 100).toFixed(0)}%` : ''}
+                </span>
+              ))}
+              <span className="text-[10px] text-neutral-500 ml-auto">#{state.analyzeCount}</span>
+              {state.report.summaryZh && (
+                <p className="w-full text-[10px] text-neutral-400 leading-relaxed line-clamp-2">{state.report.summaryZh}</p>
+              )}
+            </div>
           )}
         </div>
       )}
