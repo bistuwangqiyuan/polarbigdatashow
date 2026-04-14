@@ -527,7 +527,7 @@ export default function DevicesPage() {
                 <div className="flex flex-wrap gap-3">
                   {solarAlerts.alerts.map(d => (
                     <div key={d.id} className="px-3 py-1.5 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning">
-                      {d.name}: {d.power}W（低于阈值 {solarAlerts.threshold - d.power}W）
+                      {d.name}: {d.power}W（低于阈值 {(solarAlerts.threshold - d.power).toFixed(2)}W）
                     </div>
                   ))}
                 </div>
