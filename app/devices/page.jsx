@@ -34,9 +34,15 @@ function applySolarAnomalyFlags(devices) {
   })
 }
 
-function mapSolarPowerFromWeather(devices, weatherKey) {
+/**
+ * Compute panel power from weather, optionally applying per-panel occlusion factors.
+ * @param {object[]} devices
+ * @param {string} weatherKey
+ * @param {Record<number,number>} occlusionFactors  panelId → power factor (0–1)
+ * @param {Record<number,{type:string,ratio:number}>} occlusionDetails panelId → detail info
+ */
+function mapSolarPowerFromWeather(devices, weatherKey, occlusionFactors = {}, occlusionDetails = {}) {
   const h = getTianjinDecimalHour()
-  // 先算出所有面板的基准功率（不含遮挡因子）
   const basePowers = {}
   devices.forEach((d) => {
     if (d.type !== '光伏组件') return
@@ -47,27 +53,43 @@ function mapSolarPowerFromWeather(devices, weatherKey) {
 
   return devices.map((d) => {
     if (d.type !== '光伏组件') return d
-    if (d.status === 'offline') return { ...d, power: 0, load: 0, efficiency: 0 }
+    if (d.status === 'offline') return { ...d, power: 0, load: 0, efficiency: 0, occlusionInfo: null }
 
-    let power
-    if (d.id === 2) {
-      // 光伏阵列-02：树叶遮挡，功率为其余三块均值的 70%
-      const others = Object.entries(basePowers)
-        .filter(([id]) => Number(id) !== 2)
-        .map(([, p]) => p)
-      const meanOthers = others.reduce((s, p) => s + p, 0) / others.length
-      power = parseFloat((meanOthers * 0.7).toFixed(1))
-    } else {
-      power = basePowers[d.id]
-    }
-
+    const factor = occlusionFactors[d.id] !== undefined ? occlusionFactors[d.id] : 1.0
+    const power = parseFloat((basePowers[d.id] * factor).toFixed(1))
     return {
       ...d,
       power,
       load: Math.round((power / SOLAR_RATED_W) * 100),
       efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
+      occlusionInfo: occlusionDetails[d.id] || null,
     }
   })
+}
+
+/** Parse the latest pvOcclusionReport from localStorage (max 5 min stale). */
+function readOcclusionFromStorage() {
+  try {
+    const raw = localStorage.getItem('pvOcclusionReport')
+    if (!raw) return null
+    const r = JSON.parse(raw)
+    if (!r?.panels || (Date.now() - (r.timestamp || 0)) > 5 * 60 * 1000) return null
+    return r
+  } catch { return null }
+}
+
+/** Convert an occlusion report into factors and details maps keyed by device id. */
+function buildOcclusionMaps(report) {
+  const factors = {}
+  const details = {}
+  if (!report?.panels) return { factors, details }
+  report.panels.forEach((p) => {
+    if (p.occluded && typeof p.ratio === 'number' && p.ratio > 0) {
+      factors[p.id] = Math.max(0, 1 - p.ratio)
+      details[p.id] = { type: p.type || '异物', ratio: p.ratio }
+    }
+  })
+  return { factors, details }
 }
 
 const DeviceTypeIcon = ({ type }) => {
@@ -143,8 +165,8 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
 
         {device.status === 'warning' && (
           <div className="mb-3 px-3 py-1.5 bg-warning/15 border border-warning/30 rounded-lg text-xs text-warning backdrop-blur-sm">
-            {device.id === 2
-              ? '🍃 树叶遮挡，输出功率降至均值的 70%'
+            {device.occlusionInfo
+              ? `📷 AI识别：${device.occlusionInfo.type}遮挡 ${Math.round(device.occlusionInfo.ratio * 100)}%，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
               : '⚠ 发电量低于平均值80%，疑似异常'}
           </div>
         )}
@@ -232,6 +254,9 @@ export default function DevicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [envTemp, setEnvTemp] = useState(18.5)
 
+  // Occlusion report from AI recognition (refreshed every 5s from localStorage)
+  const occlusionReportRef = useRef(null)
+
   const bootRef = useRef(null)
   if (bootRef.current === null) {
     const w = TIANJIN_WEATHER.CLEAR
@@ -280,7 +305,10 @@ export default function DevicesPage() {
     const applyWeather = (key) => {
       if (cancelled) return
       setWeatherKey(key)
-      setDevices((prev) => applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key)))
+      setDevices((prev) => {
+        const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
+        return applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key, factors, details))
+      })
     }
     const load = async () => {
       try {
@@ -304,11 +332,21 @@ export default function DevicesPage() {
     }
   }, [])
 
-  // 每 10 秒：按天津时刻与当前天气重算光伏出力，储能小幅波动；并刷新异常标记
+  // Poll AI occlusion report from localStorage every 5 s
+  useEffect(() => {
+    const read = () => {
+      const r = readOcclusionFromStorage()
+      occlusionReportRef.current = r
+    }
+    read()
+    const t = setInterval(read, 5000)
+    return () => clearInterval(t)
+  }, [])
+
+  // 每 10 秒：按天津时刻与当前天气重算光伏出力，叠加 AI 识别遮挡因子；储能小幅波动
   useEffect(() => {
     const timer = setInterval(() => {
       setDevices((prev) => {
-        // 先计算所有面板基准功率
         const h = getTianjinDecimalHour()
         const basePowers = {}
         prev.forEach((d) => {
@@ -316,25 +354,20 @@ export default function DevicesPage() {
           const jitter = ((d.id % 5) - 2) * 0.01
           basePowers[d.id] = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
         })
-        const othersOfPanel2 = Object.entries(basePowers)
-          .filter(([id]) => Number(id) !== 2)
-          .map(([, p]) => p)
-        const meanOthers2 = othersOfPanel2.reduce((s, p) => s + p, 0) / othersOfPanel2.length
+
+        const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
 
         const updated = prev.map((d) => {
           if (d.status === 'offline') return d
           if (d.type === '光伏组件') {
-            let power
-            if (d.id === 2) {
-              power = parseFloat((meanOthers2 * 0.7).toFixed(1))
-            } else {
-              power = basePowers[d.id]
-            }
+            const factor = factors[d.id] !== undefined ? factors[d.id] : 1.0
+            const power = parseFloat((basePowers[d.id] * factor).toFixed(1))
             return {
               ...d,
               power,
               load: Math.round((power / SOLAR_RATED_W) * 100),
               efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
+              occlusionInfo: details[d.id] || null,
             }
           }
           if (d.type === '储能' && d.power > 0) {
@@ -351,19 +384,27 @@ export default function DevicesPage() {
 
   const toggleDeviceStatus = (deviceId) => {
     setDevices((prevDevices) => {
+      const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
       const next = prevDevices.map((device) => {
         if (device.id === deviceId && device.switchable) {
           const isOn = device.status === 'online' || device.status === 'warning'
           const newStatus = isOn ? 'offline' : 'online'
           const jitter = ((device.id % 5) - 2) * 0.01
-          const newPower =
-            newStatus === 'online'
-              ? computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
-              : 0
+          const basePower = newStatus === 'online'
+            ? computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
+            : 0
+          const factor = factors[device.id] !== undefined ? factors[device.id] : 1.0
+          const newPower = newStatus === 'online' ? parseFloat((basePower * factor).toFixed(1)) : 0
           const newLoad = newStatus === 'online' ? Math.round((newPower / SOLAR_RATED_W) * 100) : 0
-          const newEff =
-            newStatus === 'online' ? parseFloat(((newPower / SOLAR_RATED_W) * 100).toFixed(1)) : 0
-          return { ...device, status: newStatus, power: newPower, efficiency: newEff, load: newLoad }
+          const newEff = newStatus === 'online' ? parseFloat(((newPower / SOLAR_RATED_W) * 100).toFixed(1)) : 0
+          return {
+            ...device,
+            status: newStatus,
+            power: newPower,
+            efficiency: newEff,
+            load: newLoad,
+            occlusionInfo: newStatus === 'online' ? (details[device.id] || null) : null,
+          }
         }
         return device
       })

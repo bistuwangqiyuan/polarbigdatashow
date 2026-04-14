@@ -294,6 +294,16 @@ export default function StreamMonitor() {
       const j = await res.json()
       if (j?.ok && j?.report) {
         cs.report = j.report; cs.error = null
+        // Publish panel occlusion result to localStorage for devices page
+        if (camId === 'cam1' && j.report.mode === 'panel_occlusion') {
+          try {
+            localStorage.setItem('pvOcclusionReport', JSON.stringify({
+              panels: j.report.panels,
+              anyOccluded: j.report.anyOccluded,
+              timestamp: Date.now(),
+            }))
+          } catch {}
+        }
         if (camId === 'cam1' && recognitionFirstTime.current) {
           recognitionFirstTime.current = false
           setRecognitionToast('show')
@@ -525,6 +535,15 @@ export default function StreamMonitor() {
     cameras.forEach((cam) => stopCamera(cam.id))
   }, [cameras, stopCamera])
 
+  // Auto-start camera monitoring on mount (once only)
+  const startAllRef = useRef(null)
+  useEffect(() => { startAllRef.current = startAll }, [startAll])
+  useEffect(() => {
+    const t = setTimeout(() => startAllRef.current?.(), 800)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => { cameras.forEach((cam) => stopCamera(cam.id)) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
