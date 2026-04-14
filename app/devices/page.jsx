@@ -191,6 +191,21 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
           </span>
         </div>
 
+        {device.status === 'warning' && (
+          <div className="mb-3 px-3 py-2 bg-warning/15 border border-warning/30 rounded-lg flex items-start gap-2">
+            <svg className="w-4 h-4 text-warning mt-0.5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <div>
+              <p className="text-xs font-medium text-warning">AI 识别到异常，疑似{device.occlusionInfo ? (device.occlusionInfo.type || '遮挡') : '遮挡'}</p>
+              {device.occlusionInfo && device.occlusionInfo.ratio > 0 && (
+                <p className="text-xs text-warning/70 mt-0.5">遮挡比例: {(device.occlusionInfo.ratio * 100).toFixed(0)}%</p>
+              )}
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
@@ -591,8 +606,9 @@ export default function DevicesPage() {
                 </div>
                 <div className="flex flex-wrap gap-3">
                   {solarAlerts.alerts.map(d => (
-                    <div key={d.id} className="px-3 py-1.5 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning">
-                      {d.name}: {d.power}W（低于阈值 {(solarAlerts.threshold - d.power).toFixed(2)}W）
+                    <div key={d.id} className="px-3 py-2 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning">
+                      <div className="font-medium">{d.name}: {d.power}W（低于阈值 {(solarAlerts.threshold - d.power).toFixed(2)}W）</div>
+                      <div className="text-xs text-warning/80 mt-1">AI 识别到异常，疑似{d.occlusionInfo ? (d.occlusionInfo.type || '遮挡') : '遮挡'}</div>
                     </div>
                   ))}
                 </div>
