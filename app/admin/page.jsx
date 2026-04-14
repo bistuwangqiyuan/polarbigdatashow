@@ -356,7 +356,7 @@ function AdminDashboard({ onLogout }) {
           <div className="text-center py-20 text-neutral-500 text-sm">加载中…</div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...PV_PANELS].reverse().map((panel) => (
+            {PV_PANELS.map((panel) => (
               <PanelControlCard
                 key={panel.id}
                 panel={panel}
