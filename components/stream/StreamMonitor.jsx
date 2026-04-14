@@ -35,14 +35,17 @@ function formatExpiry(urlStr) {
 // ──────────────────────────────────────────────
 const DEFAULT_CAMS = [
   { id: 'cam1', label: '摄像头 1', url: 'http://aczv.asia/live/stream.m3u8' },
-  { id: 'cam2', label: '摄像头 2', url: 'http://aczv.asia/live/stream.m3u8' },
-  { id: 'cam3', label: '摄像头 3', url: 'http://aczv.asia/live/stream.m3u8' },
-  { id: 'cam4', label: '摄像头 4', url: 'http://aczv.asia/live/stream.m3u8' },
+  { id: 'cam2', label: '摄像头 2', url: 'http://abusiness.icu/live/stream.m3u8' },
+  { id: 'cam3', label: '摄像头 3', url: 'http://awallstreet.icu/live/stream.m3u8' },
+  { id: 'cam4', label: '摄像头 4', url: 'http://bistu.online/live/stream.m3u8' },
 ]
 
 const CAPTURE_INTERVAL_MS = 10_000
 const MAX_CONCURRENT_ANALYSIS = 2
-const PROXY_HOST = 'aczv.asia'
+
+// All HTTP streaming hosts routed through the server-side proxy
+// to avoid mixed-content errors on HTTPS pages.
+const PROXY_HOSTS = new Set(['aczv.asia', 'abusiness.icu', 'awallstreet.icu', 'bistu.online'])
 
 function severityColor(sev) {
   if (sev === 'high') return '#f87171'
@@ -79,9 +82,10 @@ function resolveStreamUrl(rawUrl) {
   if (/^https?:\/\//i.test(rawUrl)) {
     try {
       const parsed = new URL(rawUrl)
-      if (parsed.hostname === PROXY_HOST && parsed.pathname.startsWith('/live/')) {
-        const suffix = parsed.pathname.slice('/live'.length) + parsed.search
-        const proxyPath = '/api/stream-proxy' + suffix
+      if (PROXY_HOSTS.has(parsed.hostname) && parsed.pathname.startsWith('/live/')) {
+        // Route through server proxy: /api/stream-proxy/{hostname}/{file}
+        const filePath = parsed.pathname.slice('/live/'.length)
+        const proxyPath = `/api/stream-proxy/${parsed.hostname}/${filePath}${parsed.search}`
         if (/\.m3u8(\?|$)/i.test(rawUrl)) return { playUrl: proxyPath, type: 'hls', badge: 'HLS' }
         return { playUrl: proxyPath, type: 'flv', badge: 'FLV' }
       }
