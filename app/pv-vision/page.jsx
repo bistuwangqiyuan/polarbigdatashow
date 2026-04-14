@@ -9,7 +9,7 @@ import { runClientSidePvHeuristic, getDemoScriptedDustReport } from 'lib/pvFault
 
 const StreamMonitor = lazy(() => import('components/stream/StreamMonitor'))
 
-const DEMO_SAMPLE_PATH = '/image/fault-gallery/sample7.png'
+const DEMO_SAMPLE_PATH = '/image/fault-gallery/pv1-blocked.png'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -103,7 +103,7 @@ export default function PvVisionPage() {
     setLogLines([])
     setLastSource('demo')
     try {
-      pushLog('① 加载演示图像（蒙尘典型样本 sample7.png）')
+      pushLog('① 加载演示图像（光伏板1被遮挡样本）')
       await sleep(450)
       const raw = await fetchImageAsDataUrl(DEMO_SAMPLE_PATH)
       setPreviewUrl(raw)
@@ -119,19 +119,19 @@ export default function PvVisionPage() {
         setReport(j.report)
         setPhase('done')
       } else if (j?.code === 'NO_PROVIDER' || j?.code === 'GEMINI_FAILED') {
-        pushLog(`④ 云端未就绪（${j?.code || res.status}），展示「蒙尘」全流程演示数据（含框标注）`)
+        pushLog(`④ 云端未就绪（${j?.code || res.status}），展示「板1遮挡」全流程演示数据（含框标注）`)
         await sleep(400)
         setReport(getDemoScriptedDustReport())
         setPhase('done')
       } else {
         const detail = j?.detail ? ` ${String(j.detail).slice(0, 120)}` : ''
-        pushLog(`④ 云端返回异常（${j?.code || res.status}${detail}），展示「蒙尘」演示数据以保证流程完整`)
+        pushLog(`④ 云端返回异常（${j?.code || res.status}${detail}），展示「板1遮挡」演示数据以保证流程完整`)
         await sleep(350)
         setReport(getDemoScriptedDustReport())
         setPhase('done')
       }
     } catch (e) {
-      pushLog(`④ 过程异常：${e?.message || e}，已切换蒙尘演示数据`)
+      pushLog(`④ 过程异常：${e?.message || e}，已切换板1遮挡演示数据`)
       setReport(getDemoScriptedDustReport())
       setPhase('done')
     } finally {
@@ -259,7 +259,7 @@ export default function PvVisionPage() {
                 onClick={runFullDemo}
                 className="px-5 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 disabled:opacity-50 font-medium text-sm"
               >
-                {busy && lastSource === 'demo' ? '演示进行中…' : '全自动演示（蒙尘样本）'}
+                {busy && lastSource === 'demo' ? '演示进行中…' : '全自动演示（板1遮挡样本）'}
               </button>
               <label className="px-5 py-2.5 rounded-xl bg-neutral-800/80 text-neutral-200 border border-neutral-600 hover:border-primary/40 cursor-pointer text-sm font-medium">
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={onPickFile} />
