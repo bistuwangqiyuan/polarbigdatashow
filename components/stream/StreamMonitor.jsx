@@ -191,11 +191,12 @@ function AuthUpdatePanel({ cameras, onApply }) {
 //  Sample images for offline recognition test
 // ──────────────────────────────────────────────
 const SAMPLE_IMAGES = [
-  '/image/故障示例图/sample.png',
-  '/image/故障示例图/sample2.png',
-  '/image/故障示例图/sample3.png',
-  '/image/故障示例图/sample4.png',
-  '/image/故障示例图/正常.png',
+  { label: 'sample.png（故障）',   src: '/image/fault-gallery/sample.png' },
+  { label: 'sample2.png（故障）',  src: '/image/fault-gallery/sample2.png' },
+  { label: 'sample3.png（故障）',  src: '/image/fault-gallery/sample3.png' },
+  { label: 'sample4.png（遮挡）',  src: '/image/fault-gallery/sample4.png' },
+  { label: 'sample7.png（热斑）',  src: '/image/fault-gallery/sample7.png' },
+  { label: 'normal-1.png（正常）', src: '/image/fault-gallery/normal-1.png' },
 ]
 
 async function loadImageAsBase64(src) {
@@ -639,14 +640,14 @@ export default function StreamMonitor() {
           className="px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs"
         >
           {SAMPLE_IMAGES.map((s, i) => (
-            <option key={i} value={i}>{s.split('/').pop()}</option>
+            <option key={i} value={i}>{s.label}</option>
           ))}
         </select>
         {cameras.map((cam) => (
           <button
             key={cam.id}
             type="button"
-            onClick={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx])}
+            onClick={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx].src)}
             className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/40 hover:bg-purple-500/30 text-xs transition-colors"
           >
             {cam.label} 识别
@@ -757,12 +758,20 @@ function CameraPanel({ cam, state, onCaptureNow, onTestSample }) {
             <span className="text-neutral-600 text-xs">等待连接</span>
           </div>
         )}
-        {/* Show last captured frame as overlay when video not playing */}
-        {state.lastFrame && (state.status === 'idle' || state.status === 'error' || state.status === 'analyzing') && (
+        {/* Show last captured frame whenever video element has no active src */}
+        {state.lastFrame && state.status !== 'playing' && (
           <img
             src={state.lastFrame}
             alt="最近截帧"
             className="absolute inset-0 w-full h-full object-contain opacity-70"
+          />
+        )}
+        {/* After sample-test: video is idle but we still want to see the frame */}
+        {state.lastFrame && state.status === 'playing' && !state.player && (
+          <img
+            src={state.lastFrame}
+            alt="最近截帧"
+            className="absolute inset-0 w-full h-full object-contain"
           />
         )}
         {(state.status === 'error' || state.status === 'ended') && (
