@@ -1,8 +1,38 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
+// ──────────────────────────────────────────────
+//  Auth helpers
+// ──────────────────────────────────────────────
+
+/** Parse txTime hex from a URL string and return expiry Date (or null) */
+function parseTxTime(urlStr) {
+  try {
+    const m = urlStr.match(/[?&]txTime=([0-9a-fA-F]+)/)
+    if (!m) return null
+    return new Date(parseInt(m[1], 16) * 1000)
+  } catch {
+    return null
+  }
+}
+
+function isAuthExpired(urlStr) {
+  const exp = parseTxTime(urlStr)
+  return exp ? exp < new Date() : false
+}
+
+function formatExpiry(urlStr) {
+  const exp = parseTxTime(urlStr)
+  if (!exp) return null
+  return exp.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
+}
+
+// ──────────────────────────────────────────────
+//  Default cameras (shared stream: aczv.asia)
+//  Update txSecret + txTime when auth expires.
+// ──────────────────────────────────────────────
 const DEFAULT_CAMS = [
   { id: 'cam1', label: '摄像头 1', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
   { id: 'cam2', label: '摄像头 2', url: '/api/stream-proxy/stream.m3u8?txSecret=d22f41b43c22c209bd2bf361aec00ebe&txTime=69DB86F4' },
@@ -12,7 +42,6 @@ const DEFAULT_CAMS = [
 
 const CAPTURE_INTERVAL_MS = 10_000
 const MAX_CONCURRENT_ANALYSIS = 2
-
 const PROXY_HOST = 'aczv.asia'
 
 function severityColor(sev) {
@@ -73,16 +102,10 @@ function resolveStreamUrl(rawUrl) {
 
 async function startWebRTC(videoEl, rawUrl) {
   const parsed = new URL(rawUrl.replace(/^webrtc:/i, 'http:'))
-
-  const pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-  })
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
   pc.addTransceiver('audio', { direction: 'recvonly' })
   pc.addTransceiver('video', { direction: 'recvonly' })
-
-  pc.ontrack = (event) => {
-    if (event.streams?.[0]) videoEl.srcObject = event.streams[0]
-  }
+  pc.ontrack = (event) => { if (event.streams?.[0]) videoEl.srcObject = event.streams[0] }
 
   const offer = await pc.createOffer()
   await pc.setLocalDescription(offer)
@@ -94,38 +117,105 @@ async function startWebRTC(videoEl, rawUrl) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ api: apiUrl, streamurl, clientip: null, sdp: offer.sdp }),
   })
-
   if (!res.ok) throw new Error(`WebRTC 信令失败: HTTP ${res.status}`)
   const data = await res.json()
   if (data.code !== 0) throw new Error(`SRS 错误: code=${data.code}`)
-
   await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: data.sdp }))
   return pc
 }
 
-export default function StreamMonitor() {
-  const [cameras, setCameras] = useState(() =>
-    DEFAULT_CAMS.map((c) => ({ ...c }))
+// ──────────────────────────────────────────────
+//  AuthUpdatePanel – lets user paste new txSecret + txTime
+// ──────────────────────────────────────────────
+function AuthUpdatePanel({ cameras, onApply }) {
+  const [secret, setSecret] = useState('')
+  const [txtime, setTxtime] = useState('')
+  const expDate = useMemo(() => {
+    if (!txtime.trim()) return null
+    try { return new Date(parseInt(txtime.trim(), 16) * 1000) } catch { return null }
+  }, [txtime])
+
+  const apply = () => {
+    if (!secret.trim() || !txtime.trim()) return
+    onApply(secret.trim(), txtime.trim().toUpperCase())
+  }
+
+  return (
+    <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-warning text-sm font-semibold">🔑 更新流鉴权</span>
+        <span className="text-xs text-neutral-500">从直播控制台获取新的 txSecret 和 txTime</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-[10px] text-neutral-400 block mb-1">txSecret（32位MD5）</label>
+          <input
+            type="text"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder="d22f41b43c22c209bd2bf361aec00ebe"
+            className="w-full px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs font-mono"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-neutral-400 block mb-1">
+            txTime（16进制时间戳）
+            {expDate && (
+              <span className={`ml-2 ${expDate > new Date() ? 'text-success' : 'text-danger'}`}>
+                → {expDate.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}
+                {expDate < new Date() ? ' ❌ 已过期' : ' ✓ 有效'}
+              </span>
+            )}
+          </label>
+          <input
+            type="text"
+            value={txtime}
+            onChange={(e) => setTxtime(e.target.value)}
+            placeholder="72BBBA80  (2030-12-31)"
+            className="w-full px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs font-mono"
+          />
+        </div>
+      </div>
+      <button
+        onClick={apply}
+        disabled={!secret.trim() || !txtime.trim()}
+        className="px-4 py-2 rounded-lg bg-warning/20 text-warning border border-warning/40 text-xs font-medium hover:bg-warning/30 transition-colors disabled:opacity-40"
+      >
+        应用到所有摄像头
+      </button>
+    </div>
   )
+}
+
+// ──────────────────────────────────────────────
+//  Main component
+// ──────────────────────────────────────────────
+export default function StreamMonitor() {
+  const [cameras, setCameras] = useState(() => DEFAULT_CAMS.map((c) => ({ ...c })))
   const [monitoring, setMonitoring] = useState(false)
   const [showConfig, setShowConfig] = useState(true)
-  const [interval, setInterval_] = useState(CAPTURE_INTERVAL_MS / 1000)
+  const [showAuth, setShowAuth] = useState(false)
+  const [intervalSec, setIntervalSec] = useState(CAPTURE_INTERVAL_MS / 1000)
 
   const camStates = useRef(new Map())
   const [, forceRender] = useState(0)
   const rerender = useCallback(() => forceRender((n) => n + 1), [])
 
+  // Detect if any cam URL auth is expired
+  const authExpired = useMemo(() => cameras.some((c) => isAuthExpired(c.url)), [cameras])
+  const firstExpiry = useMemo(() => {
+    for (const c of cameras) {
+      const t = formatExpiry(c.url)
+      if (t) return t
+    }
+    return null
+  }, [cameras])
+
   const getCamState = useCallback((id) => {
     if (!camStates.current.has(id)) {
       camStates.current.set(id, {
-        status: 'idle',
-        player: null,
-        captureTimer: null,
-        lastFrame: null,
-        report: null,
-        error: null,
-        analyzeCount: 0,
-        protoBadge: '',
+        status: 'idle', player: null, captureTimer: null,
+        lastFrame: null, report: null, error: null, analyzeCount: 0, protoBadge: '',
       })
     }
     return camStates.current.get(id)
@@ -138,153 +228,159 @@ export default function StreamMonitor() {
     const canvas = document.createElement('canvas')
     const w = Math.min(videoEl.videoWidth, 1280)
     const h = Math.round((w / videoEl.videoWidth) * videoEl.videoHeight)
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(videoEl, 0, 0, w, h)
+    canvas.width = w; canvas.height = h
+    canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h)
     return canvas.toDataURL('image/jpeg', 0.85)
   }, [])
 
-  const analyzeFrame = useCallback(
-    async (camId, dataUrl) => {
-      if (analysisQueue.current >= MAX_CONCURRENT_ANALYSIS) return
-      analysisQueue.current++
-      const cs = getCamState(camId)
-      cs.status = 'analyzing'
-      cs.lastFrame = dataUrl
-      rerender()
+  const analyzeFrame = useCallback(async (camId, dataUrl) => {
+    if (analysisQueue.current >= MAX_CONCURRENT_ANALYSIS) return
+    analysisQueue.current++
+    const cs = getCamState(camId)
+    cs.status = 'analyzing'; cs.lastFrame = dataUrl; rerender()
+    try {
+      const res = await fetch('/api/pv-fault-vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: dataUrl, mimeType: 'image/jpeg' }),
+      })
+      const j = await res.json()
+      if (j?.ok && j?.report) { cs.report = j.report; cs.error = null }
+      else { cs.report = null; cs.error = j?.message || j?.code || 'unknown' }
+      cs.analyzeCount++
+    } catch (e) {
+      cs.error = e?.message || 'fetch error'; cs.report = null
+    } finally {
+      cs.status = 'playing'; analysisQueue.current--; rerender()
+    }
+  }, [getCamState, rerender])
 
-      try {
-        const res = await fetch('/api/pv-fault-vision', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: dataUrl, mimeType: 'image/jpeg' }),
-        })
-        const j = await res.json()
-        if (j?.ok && j?.report) {
-          cs.report = j.report
-          cs.error = null
-        } else {
-          cs.report = null
-          cs.error = j?.message || j?.code || 'unknown'
+  const startCamera = useCallback(async (cam) => {
+    const cs = getCamState(cam.id)
+    if (cs.player) return
+
+    const { playUrl, type, badge } = resolveStreamUrl(cam.url)
+    cs.status = 'connecting'; cs.error = null; cs.protoBadge = badge; rerender()
+
+    const videoEl = document.getElementById(`stream-video-${cam.id}`)
+    if (!videoEl) return
+
+    try {
+      if (type === 'webrtc') {
+        const pc = await startWebRTC(videoEl, playUrl)
+        videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+            cs.status = 'error'; cs.error = `WebRTC ${pc.connectionState}`; rerender()
+          }
         }
-        cs.analyzeCount++
-      } catch (e) {
-        cs.error = e?.message || 'fetch error'
-        cs.report = null
-      } finally {
-        cs.status = 'playing'
-        analysisQueue.current--
-        rerender()
-      }
-    },
-    [getCamState, rerender]
-  )
+        cs.player = { type: 'webrtc', instance: pc }
+        videoEl.play().catch(() => {})
 
-  const startCamera = useCallback(
-    async (cam) => {
-      const cs = getCamState(cam.id)
-      if (cs.player) return
-
-      const { playUrl, type, badge } = resolveStreamUrl(cam.url)
-      cs.status = 'connecting'
-      cs.error = null
-      cs.protoBadge = badge
-      rerender()
-
-      const videoEl = document.getElementById(`stream-video-${cam.id}`)
-      if (!videoEl) return
-
-      try {
-        if (type === 'webrtc') {
-          const pc = await startWebRTC(videoEl, playUrl)
-          videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
-          pc.onconnectionstatechange = () => {
-            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-              cs.status = 'error'; cs.error = `WebRTC ${pc.connectionState}`; rerender()
-            }
-          }
-          cs.player = { type: 'webrtc', instance: pc }
+      } else if (type === 'hls') {
+        if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = playUrl
           videoEl.play().catch(() => {})
-        } else if (type === 'hls') {
-          if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-            videoEl.src = playUrl
-            videoEl.play().catch(() => {})
-            videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
-            videoEl.addEventListener('error', () => { cs.status = 'error'; cs.error = 'HLS 播放错误'; rerender() })
-            cs.player = { type: 'native' }
-          } else {
-            const Hls = (await import('hls.js')).default
-            if (!Hls.isSupported()) {
-              cs.status = 'error'; cs.error = '浏览器不支持 HLS'; rerender(); return
-            }
-            const hls = new Hls({
-              liveSyncDurationCount: 3,
-              liveMaxLatencyDurationCount: 6,
-              maxBufferLength: 10,
-              enableWorker: true,
-            })
-            hls.loadSource(playUrl)
-            hls.attachMedia(videoEl)
-            hls.on(Hls.Events.MANIFEST_PARSED, () => { videoEl.play().catch(() => {}) })
-            hls.on(Hls.Events.ERROR, (_e, data) => {
-              if (data.fatal) {
-                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad()
-                else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError()
-                else { cs.status = 'error'; cs.error = `${data.type}: ${data.details}`; rerender() }
-              }
-            })
-            videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
-            cs.player = { type: 'hls', instance: hls }
-          }
+          videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
+          videoEl.addEventListener('error', (e) => {
+            const code = e.target?.error?.code
+            cs.status = 'error'
+            cs.error = code === 4 ? '流未推送或鉴权失败，请检查 txSecret/txTime' : `HLS 播放错误 (code ${code})`
+            rerender()
+          })
+          cs.player = { type: 'native' }
         } else {
-          const mpegts = (await import('mpegts.js')).default
-          if (!mpegts.isSupported()) {
-            cs.status = 'error'; cs.error = '浏览器不支持 MSE'; rerender(); return
+          const Hls = (await import('hls.js')).default
+          if (!Hls.isSupported()) {
+            cs.status = 'error'; cs.error = '浏览器不支持 HLS'; rerender(); return
           }
-          const player = mpegts.createPlayer(
-            { type: 'flv', isLive: true, url: playUrl },
-            {
-              enableWorker: true,
-              liveBufferLatencyChasing: true,
-              liveBufferLatencyMaxLatency: 5,
-              liveBufferLatencyMinRemain: 0.5,
-              autoCleanupSourceBuffer: true,
-              lazyLoadMaxDuration: 30,
-              deferLoadAfterSourceOpen: false,
-            }
-          )
-          player.attachMediaElement(videoEl)
-          player.load()
-          player.play().catch(() => {})
-          player.on(mpegts.Events.ERROR, (errType, errDetail) => {
-            console.warn(`[${cam.id}] mpegts error:`, errType, errDetail)
-            if (errType === 'NetworkError') {
-              setTimeout(() => { try { player.unload(); player.load(); player.play().catch(() => {}) } catch {} }, 3000)
-            } else {
-              cs.error = `${errType}: ${errDetail}`; cs.status = 'error'; rerender()
+          const hls = new Hls({
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 6,
+            maxBufferLength: 10,
+            enableWorker: true,
+            xhrSetup(xhr) {
+              xhr.withCredentials = false
+            },
+          })
+          hls.loadSource(playUrl)
+          hls.attachMedia(videoEl)
+          hls.on(Hls.Events.MANIFEST_PARSED, () => { videoEl.play().catch(() => {}) })
+          hls.on(Hls.Events.ERROR, (_e, data) => {
+            if (data.fatal) {
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                // Check if it's a 403 (auth expired)
+                if (data.response?.code === 403) {
+                  cs.status = 'error'
+                  cs.error = '🔑 流鉴权已过期 (403)，请在"更新流鉴权"面板中填写新的 txSecret 和 txTime'
+                  rerender()
+                } else {
+                  hls.startLoad()
+                }
+              } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls.recoverMediaError()
+              } else {
+                cs.status = 'error'
+                cs.error = `${data.type}: ${data.details}`
+                rerender()
+              }
             }
           })
-          player.on(mpegts.Events.LOADING_COMPLETE, () => { cs.status = 'ended'; rerender() })
           videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
-          cs.player = { type: 'mpegts', instance: player }
+          cs.player = { type: 'hls', instance: hls }
         }
 
-        const intervalMs = (interval || 10) * 1000
-        cs.captureTimer = window.setInterval(() => {
-          const frame = captureFrame(videoEl)
-          if (frame) analyzeFrame(cam.id, frame)
-        }, intervalMs)
-
-        rerender()
-      } catch (e) {
-        cs.status = 'error'
-        cs.error = e?.message || 'init error'
-        rerender()
+      } else {
+        // FLV via mpegts.js
+        const mpegts = (await import('mpegts.js')).default
+        if (!mpegts.isSupported()) {
+          cs.status = 'error'; cs.error = '浏览器不支持 MSE'; rerender(); return
+        }
+        const player = mpegts.createPlayer(
+          { type: 'flv', isLive: true, url: playUrl },
+          {
+            enableWorker: true,
+            liveBufferLatencyChasing: true,
+            liveBufferLatencyMaxLatency: 5,
+            liveBufferLatencyMinRemain: 0.5,
+            autoCleanupSourceBuffer: true,
+            deferLoadAfterSourceOpen: false,
+          }
+        )
+        player.attachMediaElement(videoEl)
+        player.load()
+        player.play().catch(() => {})
+        player.on(mpegts.Events.ERROR, (errType, errDetail, errInfo) => {
+          if (errType === 'NetworkError' && errInfo?.code === 403) {
+            cs.status = 'error'
+            cs.error = '🔑 流鉴权已过期 (403)，请在"更新流鉴权"面板中填写新的 txSecret 和 txTime'
+            rerender()
+          } else if (errType === 'NetworkError') {
+            setTimeout(() => {
+              try { player.unload(); player.load(); player.play().catch(() => {}) } catch {}
+            }, 3000)
+          } else {
+            cs.error = `${errType}: ${errDetail}`; cs.status = 'error'; rerender()
+          }
+        })
+        player.on(mpegts.Events.LOADING_COMPLETE, () => { cs.status = 'ended'; rerender() })
+        videoEl.addEventListener('playing', () => { cs.status = 'playing'; cs.error = null; rerender() })
+        cs.player = { type: 'mpegts', instance: player }
       }
-    },
-    [getCamState, rerender, captureFrame, analyzeFrame, interval]
-  )
+
+      const intervalMs = (intervalSec || 10) * 1000
+      cs.captureTimer = window.setInterval(() => {
+        const frame = captureFrame(videoEl)
+        if (frame) analyzeFrame(cam.id, frame)
+      }, intervalMs)
+
+      rerender()
+    } catch (e) {
+      cs.status = 'error'
+      cs.error = e?.message || 'init error'
+      rerender()
+    }
+  }, [getCamState, rerender, captureFrame, analyzeFrame, intervalSec])
 
   const stopCamera = useCallback((camId) => {
     const cs = getCamState(camId)
@@ -299,7 +395,7 @@ export default function StreamMonitor() {
         } else if (cs.player.type === 'webrtc') {
           cs.player.instance.close()
           const v = document.getElementById(`stream-video-${camId}`)
-          if (v) { v.srcObject = null }
+          if (v) v.srcObject = null
         } else if (cs.player.type === 'native') {
           const v = document.getElementById(`stream-video-${camId}`)
           if (v) { v.pause(); v.removeAttribute('src'); v.load() }
@@ -307,8 +403,7 @@ export default function StreamMonitor() {
       } catch {}
       cs.player = null
     }
-    cs.status = 'idle'
-    rerender()
+    cs.status = 'idle'; rerender()
   }, [getCamState, rerender])
 
   const startAll = useCallback(() => {
@@ -334,8 +429,45 @@ export default function StreamMonitor() {
     })
   }, [])
 
+  const applyNewAuth = useCallback((newSecret, newTxTime) => {
+    setCameras((prev) =>
+      prev.map((cam) => ({
+        ...cam,
+        url: cam.url
+          .replace(/txSecret=[^&]*/g, `txSecret=${newSecret}`)
+          .replace(/txTime=[^&]*/g, `txTime=${newTxTime}`),
+      }))
+    )
+    setShowAuth(false)
+  }, [])
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* ── Auth Expiry Banner ── */}
+      <AnimatePresence>
+        {authExpired && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-danger/40 bg-danger/10"
+          >
+            <div className="flex items-center gap-2 text-sm text-danger">
+              <span>🔑</span>
+              <span className="font-semibold">流鉴权已过期</span>
+              {firstExpiry && <span className="text-xs text-danger/70">（到期时间：{firstExpiry}）</span>}
+            </div>
+            <button
+              onClick={() => { setShowAuth((v) => !v); setShowConfig(true) }}
+              className="px-3 py-1 rounded-lg text-xs bg-danger/20 text-danger border border-danger/40 hover:bg-danger/30 transition-colors"
+            >
+              {showAuth ? '收起' : '更新鉴权'}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center gap-3">
         {!monitoring ? (
           <button type="button" onClick={startAll}
@@ -354,8 +486,8 @@ export default function StreamMonitor() {
         </button>
         <label className="flex items-center gap-2 text-xs text-neutral-400">
           截帧间隔
-          <input type="number" min={5} max={120} value={interval}
-            onChange={(e) => setInterval_(Number(e.target.value) || 10)}
+          <input type="number" min={5} max={120} value={intervalSec}
+            onChange={(e) => setIntervalSec(Number(e.target.value) || 10)}
             disabled={monitoring}
             className="w-16 px-2 py-1 rounded-md bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs text-center" />
           秒
@@ -363,28 +495,37 @@ export default function StreamMonitor() {
         {monitoring && <span className="text-xs text-success animate-pulse">● 监控中</span>}
       </div>
 
+      {/* ── Config Panel ── */}
       {showConfig && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 space-y-3">
+          className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 space-y-4">
           <p className="text-xs text-neutral-500">
-            支持 FLV / HLS / RTMP / WebRTC 四种协议，自动识别并选择最佳播放方式。
-            RTMP 地址自动转换为 FLV 播放；WebRTC 通过 SRS 信令 API 连接。
+            支持 FLV / HLS / RTMP / WebRTC。RTMP 自动转 FLV；HLS 片段通过服务端代理转发，解决跨域问题。
           </p>
+
+          {/* Auth update panel shown when expired or manually shown */}
+          {(authExpired || showAuth) && (
+            <AuthUpdatePanel cameras={cameras} onApply={applyNewAuth} />
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {cameras.map((cam, i) => {
               const { badge } = resolveStreamUrl(cam.url)
+              const expired = isAuthExpired(cam.url)
               return (
                 <div key={cam.id} className="flex items-center gap-2">
                   <span className="text-xs text-neutral-500 w-16 shrink-0">{cam.label}</span>
                   <input type="text" value={cam.url}
                     onChange={(e) => updateCamUrl(i, e.target.value)}
                     disabled={monitoring}
-                    className="flex-1 px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs font-mono disabled:opacity-50"
+                    className={`flex-1 px-3 py-1.5 rounded-lg bg-neutral-900 border text-neutral-200 text-xs font-mono disabled:opacity-50 ${
+                      expired ? 'border-danger/50' : 'border-neutral-700'
+                    }`}
                     placeholder="http://aczv.asia/live/stream.flv" />
                   {badge && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 shrink-0">{badge}</span>
                   )}
+                  {expired && <span className="text-[9px] text-danger shrink-0">过期</span>}
                 </div>
               )
             })}
@@ -392,6 +533,7 @@ export default function StreamMonitor() {
         </motion.div>
       )}
 
+      {/* ── Camera Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cameras.map((cam) => (
           <CameraPanel key={cam.id} cam={cam} state={getCamState(cam.id)} />
@@ -401,6 +543,9 @@ export default function StreamMonitor() {
   )
 }
 
+// ──────────────────────────────────────────────
+//  CameraPanel
+// ──────────────────────────────────────────────
 function CameraPanel({ cam, state }) {
   const statusLabel = {
     idle: '未连接', connecting: '连接中…', playing: '播放中',
@@ -463,9 +608,11 @@ function CameraPanel({ cam, state }) {
             <span className="text-neutral-600 text-xs">等待连接</span>
           </div>
         )}
-        {state.status === 'error' && state.error && (
+        {(state.status === 'error' || state.status === 'ended') && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <span className="text-danger/80 text-[10px] text-center break-all">{state.error}</span>
+            <span className="text-danger/80 text-[11px] text-center break-words leading-relaxed">
+              {state.error || '流已断开'}
+            </span>
           </div>
         )}
       </div>
