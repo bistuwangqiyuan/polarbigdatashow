@@ -237,6 +237,9 @@ async function loadImageAsBase64(src, maxWidth = 480) {
 export default function StreamMonitor() {
   const [cameras, setCameras] = useState(() => DEFAULT_CAMS.map((c) => ({ ...c })))
   const [monitoring, setMonitoring] = useState(false)
+  // Cascade: how many cameras have been activated (1→4). Next camera is activated only when all previous ones fail.
+  const [activeCamCount, setActiveCamCount] = useState(1)
+  const activeCamCountRef = useRef(1)
   const [capturingActive, setCapturingActive] = useState(true)   // auto-capture on/off
   const [showConfig, setShowConfig] = useState(false)             // hide by default – URL pre-configured
   const [showAuth, setShowAuth] = useState(false)
@@ -528,13 +531,38 @@ export default function StreamMonitor() {
 
   const startAll = useCallback(() => {
     setMonitoring(true); setShowConfig(false); setCapturingActive(true)
-    cameras.forEach((cam) => startCamera(cam))
+    activeCamCountRef.current = 1
+    setActiveCamCount(1)
+    startCamera(cameras[0])   // Only start cam1; others cascade in on failure
   }, [cameras, startCamera])
 
   const stopAll = useCallback(() => {
     setMonitoring(false); setCapturingActive(false)
+    activeCamCountRef.current = 1
+    setActiveCamCount(1)
     cameras.forEach((cam) => stopCamera(cam.id))
   }, [cameras, stopCamera])
+
+  // Cascade: if all currently-active cameras fail, activate the next one
+  useEffect(() => {
+    if (!monitoring) return
+    const check = () => {
+      const count = activeCamCountRef.current
+      if (count >= cameras.length) return
+      const allFailed = cameras.slice(0, count).every((cam) => {
+        const s = getCamState(cam.id).status
+        return s === 'error' || s === 'ended'
+      })
+      if (allFailed) {
+        const next = count + 1
+        activeCamCountRef.current = next
+        setActiveCamCount(next)
+        startCamera(cameras[next - 1])
+      }
+    }
+    const t = setInterval(check, 3000)
+    return () => clearInterval(t)
+  }, [monitoring, cameras, getCamState, startCamera])
 
   // Auto-start camera monitoring on mount (once only)
   const startAllRef = useRef(null)
@@ -673,7 +701,7 @@ export default function StreamMonitor() {
         </label>
         {monitoring && (
           <span className={`text-xs ${capturingActive ? 'text-success animate-pulse' : 'text-neutral-500'}`}>
-            {capturingActive ? '● 监控中' : '○ 已暂停截帧'}
+            {capturingActive ? `● 监控中（摄像头 ${activeCamCount}）` : '○ 已暂停截帧'}
           </span>
         )}
       </div>
@@ -737,9 +765,13 @@ export default function StreamMonitor() {
         </button>
       </div>
 
-      {/* ── Camera Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {cameras.map((cam) => (
+      {/* ── Camera Grid (cascade: only show activated cameras) ── */}
+      <div className={`grid gap-4 ${
+        activeCamCount === 1
+          ? 'grid-cols-1 max-w-2xl mx-auto'
+          : 'grid-cols-1 md:grid-cols-2'
+      }`}>
+        {cameras.slice(0, activeCamCount).map((cam) => (
           <CameraPanel
             key={cam.id}
             cam={cam}
