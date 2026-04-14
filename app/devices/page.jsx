@@ -20,7 +20,20 @@ const deviceGradients = {
 
 const SOLAR_RATED_W = 200
 
-function applySolarAnomalyFlags(devices) {
+/** Read admin manual overrides from localStorage. */
+function readAdminOverrides() {
+  try {
+    const raw = localStorage.getItem('pvAdminOverrides')
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+/**
+ * Apply anomaly flags:
+ * - Admin override 'fault' → warning (regardless of power)
+ * - Auto: power < 80% of avg AND deviation > 10W → warning
+ */
+function applySolarAnomalyFlags(devices, adminOverrides = {}) {
   const onlineSolar = devices.filter((d) => d.type === '光伏组件' && d.power > 0)
   if (onlineSolar.length === 0) return devices
   const avgPower = onlineSolar.reduce((s, d) => s + d.power, 0) / onlineSolar.length
@@ -29,8 +42,13 @@ function applySolarAnomalyFlags(devices) {
     if (d.type !== '光伏组件') return d
     if (d.status === 'offline') return d
     if (d.power <= 0) return { ...d, status: d.status === 'warning' ? 'offline' : d.status }
-    const isAnomaly = d.power < threshold
-    return { ...d, status: isAnomaly ? 'warning' : 'online' }
+    // Admin manual override takes precedence
+    if (adminOverrides[d.id] === 'fault') return { ...d, status: 'warning', adminFault: true }
+    if (adminOverrides[d.id] === 'normal') return { ...d, status: 'online', adminFault: false }
+    // Auto threshold: below 80% AND deviation > 10W
+    const deviation = avgPower - d.power
+    const isAnomaly = d.power < threshold && deviation > 10
+    return { ...d, status: isAnomaly ? 'warning' : 'online', adminFault: false }
   })
 }
 
@@ -165,9 +183,11 @@ const DeviceCard = ({ device, index, onToggle, envTemp }) => {
 
         {device.status === 'warning' && (
           <div className="mb-3 px-3 py-1.5 bg-warning/15 border border-warning/30 rounded-lg text-xs text-warning backdrop-blur-sm">
-            {device.occlusionInfo
-              ? `⚠ 检测到${device.occlusionInfo.type}遮挡，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
-              : '⚠ 发电量低于平均值80%，疑似异常'}
+            {device.adminFault
+              ? '🔴 管理员已手动触发异常报警'
+              : device.occlusionInfo
+                ? `⚠ 检测到${device.occlusionInfo.type}遮挡，发电降至 ${Math.round((1 - device.occlusionInfo.ratio) * 100)}%`
+                : '⚠ 发电量低于平均值80%且偏差超过10W，疑似异常'}
           </div>
         )}
 
@@ -256,6 +276,8 @@ export default function DevicesPage() {
 
   // Occlusion report from AI recognition (refreshed every 5s from localStorage)
   const occlusionReportRef = useRef(null)
+  // Admin manual overrides (refreshed every 5s from localStorage)
+  const adminOverridesRef = useRef({})
 
   const bootRef = useRef(null)
   if (bootRef.current === null) {
@@ -307,7 +329,7 @@ export default function DevicesPage() {
       setWeatherKey(key)
       setDevices((prev) => {
         const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
-        return applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key, factors, details))
+        return applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key, factors, details), adminOverridesRef.current)
       })
     }
     const load = async () => {
@@ -332,11 +354,11 @@ export default function DevicesPage() {
     }
   }, [])
 
-  // Poll AI occlusion report from localStorage every 5 s
+  // Poll AI occlusion report + admin overrides from localStorage every 5 s
   useEffect(() => {
     const read = () => {
-      const r = readOcclusionFromStorage()
-      occlusionReportRef.current = r
+      occlusionReportRef.current = readOcclusionFromStorage()
+      adminOverridesRef.current = readAdminOverrides()
     }
     read()
     const t = setInterval(read, 5000)
@@ -376,7 +398,7 @@ export default function DevicesPage() {
           }
           return d
         })
-        return applySolarAnomalyFlags(updated)
+        return applySolarAnomalyFlags(updated, adminOverridesRef.current)
       })
     }, 10000)
     return () => clearInterval(timer)
@@ -408,7 +430,7 @@ export default function DevicesPage() {
         }
         return device
       })
-      return applySolarAnomalyFlags(next)
+      return applySolarAnomalyFlags(next, adminOverridesRef.current)
     })
   }
 
@@ -448,6 +470,9 @@ export default function DevicesPage() {
               </Link>
               <Link href="/pv-vision" className="text-sm text-neutral-400 hover:text-primary transition-colors">
                 图像识别
+              </Link>
+              <Link href="/admin" className="text-sm text-neutral-400 hover:text-warning transition-colors">
+                后台管理
               </Link>
               <Image
                 src="/image/logo.png"
