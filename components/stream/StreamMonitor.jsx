@@ -188,14 +188,38 @@ function AuthUpdatePanel({ cameras, onApply }) {
 }
 
 // ──────────────────────────────────────────────
+//  Sample images for offline recognition test
+// ──────────────────────────────────────────────
+const SAMPLE_IMAGES = [
+  '/image/故障示例图/sample.png',
+  '/image/故障示例图/sample2.png',
+  '/image/故障示例图/sample3.png',
+  '/image/故障示例图/sample4.png',
+  '/image/故障示例图/正常.png',
+]
+
+async function loadImageAsBase64(src) {
+  const res = await fetch(src)
+  const blob = await res.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+// ──────────────────────────────────────────────
 //  Main component
 // ──────────────────────────────────────────────
 export default function StreamMonitor() {
   const [cameras, setCameras] = useState(() => DEFAULT_CAMS.map((c) => ({ ...c })))
   const [monitoring, setMonitoring] = useState(false)
+  const [capturingActive, setCapturingActive] = useState(true)   // auto-capture on/off
   const [showConfig, setShowConfig] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
   const [intervalSec, setIntervalSec] = useState(CAPTURE_INTERVAL_MS / 1000)
+  const [sampleIdx, setSampleIdx] = useState(0)                   // for sample-based test
 
   const camStates = useRef(new Map())
   const [, forceRender] = useState(0)
@@ -406,13 +430,66 @@ export default function StreamMonitor() {
     cs.status = 'idle'; rerender()
   }, [getCamState, rerender])
 
+  // ── Stop / restart only the capture timers (keep video playing) ──
+  const stopCapture = useCallback(() => {
+    setCapturingActive(false)
+    cameras.forEach((cam) => {
+      const cs = getCamState(cam.id)
+      if (cs.captureTimer) { clearInterval(cs.captureTimer); cs.captureTimer = null }
+    })
+    rerender()
+  }, [cameras, getCamState, rerender])
+
+  const startCapture = useCallback(() => {
+    setCapturingActive(true)
+    cameras.forEach((cam) => {
+      const cs = getCamState(cam.id)
+      if (!cs.captureTimer && cs.status === 'playing') {
+        const videoEl = document.getElementById(`stream-video-${cam.id}`)
+        const intervalMs = (intervalSec || 10) * 1000
+        cs.captureTimer = window.setInterval(() => {
+          const frame = captureFrame(videoEl)
+          if (frame) analyzeFrame(cam.id, frame)
+        }, intervalMs)
+      }
+    })
+    rerender()
+  }, [cameras, getCamState, rerender, captureFrame, analyzeFrame, intervalSec])
+
+  // ── Manual one-shot capture for a single camera ──
+  const captureNow = useCallback((camId) => {
+    const videoEl = document.getElementById(`stream-video-${camId}`)
+    const frame = captureFrame(videoEl)
+    if (frame) {
+      analyzeFrame(camId, frame)
+    }
+  }, [captureFrame, analyzeFrame])
+
+  // ── Test recognition with a sample fault image (offline testing) ──
+  const testWithSample = useCallback(async (camId, imgSrc) => {
+    const cs = getCamState(camId)
+    cs.status = 'analyzing'
+    cs.error = null
+    rerender()
+    try {
+      const dataUrl = await loadImageAsBase64(imgSrc)
+      cs.lastFrame = dataUrl
+      rerender()
+      await analyzeFrame(camId, dataUrl)
+    } catch (e) {
+      cs.status = cs.player ? 'playing' : 'idle'
+      cs.error = `样本加载失败: ${e.message}`
+      rerender()
+    }
+  }, [getCamState, rerender, analyzeFrame])
+
   const startAll = useCallback(() => {
-    setMonitoring(true); setShowConfig(false)
+    setMonitoring(true); setShowConfig(false); setCapturingActive(true)
     cameras.forEach((cam) => startCamera(cam))
   }, [cameras, startCamera])
 
   const stopAll = useCallback(() => {
-    setMonitoring(false)
+    setMonitoring(false); setCapturingActive(false)
     cameras.forEach((cam) => stopCamera(cam.id))
   }, [cameras, stopCamera])
 
@@ -472,14 +549,30 @@ export default function StreamMonitor() {
         {!monitoring ? (
           <button type="button" onClick={startAll}
             className="px-5 py-2.5 rounded-xl bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 font-medium text-sm">
-            开始监控
+            ▶ 开始监控
           </button>
         ) : (
           <button type="button" onClick={stopAll}
             className="px-5 py-2.5 rounded-xl bg-danger/20 text-danger border border-danger/40 hover:bg-danger/30 font-medium text-sm">
-            停止监控
+            ■ 停止监控
           </button>
         )}
+
+        {/* ── Capture toggle (independent of video playback) ── */}
+        {monitoring && (
+          capturingActive ? (
+            <button type="button" onClick={stopCapture}
+              className="px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 text-sm font-medium">
+              ⏸ 停止截帧识别
+            </button>
+          ) : (
+            <button type="button" onClick={startCapture}
+              className="px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 text-sm font-medium">
+              ▶ 恢复截帧识别
+            </button>
+          )
+        )}
+
         <button type="button" onClick={() => setShowConfig((v) => !v)}
           className="px-4 py-2.5 rounded-xl border border-neutral-600 text-neutral-400 hover:text-neutral-200 text-sm">
           {showConfig ? '收起配置' : '流地址配置'}
@@ -492,7 +585,11 @@ export default function StreamMonitor() {
             className="w-16 px-2 py-1 rounded-md bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs text-center" />
           秒
         </label>
-        {monitoring && <span className="text-xs text-success animate-pulse">● 监控中</span>}
+        {monitoring && (
+          <span className={`text-xs ${capturingActive ? 'text-success animate-pulse' : 'text-neutral-500'}`}>
+            {capturingActive ? '● 监控中' : '○ 已暂停截帧'}
+          </span>
+        )}
       </div>
 
       {/* ── Config Panel ── */}
@@ -533,10 +630,40 @@ export default function StreamMonitor() {
         </motion.div>
       )}
 
+      {/* ── Sample-based offline test ── */}
+      <div className="flex flex-wrap items-center gap-3 px-1">
+        <span className="text-xs text-neutral-500">离线测试（无视频流时）:</span>
+        <select
+          value={sampleIdx}
+          onChange={(e) => setSampleIdx(Number(e.target.value))}
+          className="px-2 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs"
+        >
+          {SAMPLE_IMAGES.map((s, i) => (
+            <option key={i} value={i}>{s.split('/').pop()}</option>
+          ))}
+        </select>
+        {cameras.map((cam) => (
+          <button
+            key={cam.id}
+            type="button"
+            onClick={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx])}
+            className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/40 hover:bg-purple-500/30 text-xs transition-colors"
+          >
+            {cam.label} 识别
+          </button>
+        ))}
+      </div>
+
       {/* ── Camera Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cameras.map((cam) => (
-          <CameraPanel key={cam.id} cam={cam} state={getCamState(cam.id)} />
+          <CameraPanel
+            key={cam.id}
+            cam={cam}
+            state={getCamState(cam.id)}
+            onCaptureNow={() => captureNow(cam.id)}
+            onTestSample={() => testWithSample(cam.id, SAMPLE_IMAGES[sampleIdx])}
+          />
         ))}
       </div>
     </div>
@@ -546,7 +673,7 @@ export default function StreamMonitor() {
 // ──────────────────────────────────────────────
 //  CameraPanel
 // ──────────────────────────────────────────────
-function CameraPanel({ cam, state }) {
+function CameraPanel({ cam, state, onCaptureNow, onTestSample }) {
   const statusLabel = {
     idle: '未连接', connecting: '连接中…', playing: '播放中',
     analyzing: '识别中…', error: '连接失败', ended: '流已断开',
@@ -569,11 +696,33 @@ function CameraPanel({ cam, state }) {
             {statusLabel[state.status] || state.status}
           </span>
         </div>
-        {state.report && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${severityBadgeClass(state.report.severity)}`}>
-            {state.report.severity}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {state.report && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${severityBadgeClass(state.report.severity)}`}>
+              {state.report.severity}
+            </span>
+          )}
+          {/* Manual capture button – only works when video is playing */}
+          <button
+            type="button"
+            onClick={onCaptureNow}
+            disabled={state.status === 'analyzing'}
+            title="立即截取当前视频帧并识别"
+            className="px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary/80 border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-40"
+          >
+            📷 截帧
+          </button>
+          {/* Sample-image test button */}
+          <button
+            type="button"
+            onClick={onTestSample}
+            disabled={state.status === 'analyzing'}
+            title="用样本故障图测试识别 API（无需视频流）"
+            className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors disabled:opacity-40"
+          >
+            🧪 样本
+          </button>
+        </div>
       </div>
 
       <div className="relative aspect-video bg-black">
@@ -603,10 +752,18 @@ function CameraPanel({ cam, state }) {
             <span className="text-primary text-xs animate-pulse">截帧识别中…</span>
           </div>
         )}
-        {state.status === 'idle' && (
+        {state.status === 'idle' && !state.lastFrame && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-neutral-600 text-xs">等待连接</span>
           </div>
+        )}
+        {/* Show last captured frame as overlay when video not playing */}
+        {state.lastFrame && (state.status === 'idle' || state.status === 'error' || state.status === 'analyzing') && (
+          <img
+            src={state.lastFrame}
+            alt="最近截帧"
+            className="absolute inset-0 w-full h-full object-contain opacity-70"
+          />
         )}
         {(state.status === 'error' || state.status === 'ended') && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
