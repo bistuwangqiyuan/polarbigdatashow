@@ -150,18 +150,7 @@ function PanelControlCard({ panel, override, onSet, saving }) {
       ? 'text-neutral-400 border-neutral-600/40 bg-neutral-800/30'
       : 'text-success border-success/40 bg-success/10'
 
-  const dotCls  = isFault ? 'bg-danger animate-pulse' : isOffline ? 'bg-neutral-500' : 'bg-success'
-  const textCls = isFault ? 'text-danger/90' : isOffline ? 'text-neutral-400' : 'text-success/80'
-  const rowBg   = isFault
-    ? 'bg-danger/10 border border-danger/20'
-    : isOffline
-      ? 'bg-neutral-800/30 border border-neutral-700/30'
-      : 'bg-success/5 border border-success/10'
-  const rowText = isFault
-    ? '已触发异常报警，设备管理页面将显示告警'
-    : isOffline
-      ? '设备已在设备管理页面关断，点击「正常」可恢复运行'
-      : '运行正常，无告警'
+  const dotCls = isFault ? 'bg-danger animate-pulse' : isOffline ? 'bg-neutral-500' : 'bg-success'
 
   return (
     <motion.div
@@ -169,6 +158,7 @@ function PanelControlCard({ panel, override, onSet, saving }) {
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl border p-5 transition-all duration-300 ${borderCls}`}
     >
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-base font-display text-white">{panel.name}</h3>
@@ -179,33 +169,65 @@ function PanelControlCard({ panel, override, onSet, saving }) {
         </span>
       </div>
 
-      <div className={`flex items-center gap-2 mb-5 px-3 py-2 rounded-lg ${rowBg}`}>
+      {/* Status dot */}
+      <div className="flex items-center gap-2 mb-5">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotCls}`} />
-        <span className={`text-xs ${textCls}`}>{rowText}</span>
+        <span className="text-xs text-neutral-500">
+          {isFault ? '异常报警中' : isOffline ? '已关断停运' : '正常运行中'}
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* ── 报警控制 ── */}
+      <p className="text-xs text-neutral-600 mb-1.5 uppercase tracking-wide">报警控制</p>
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           onClick={() => onSet(panel.id, 'normal')}
-          disabled={isNormal || saving}
-          className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
+          disabled={(isNormal || isOffline) || saving}
+          className={`py-2 rounded-xl text-sm font-medium border transition-all ${
             isNormal
               ? 'border-success/50 bg-success/15 text-success cursor-default'
-              : 'border-success/30 bg-transparent text-success/60 hover:bg-success/10 hover:border-success/50 hover:text-success'
+              : 'border-success/30 bg-transparent text-success/50 hover:bg-success/10 hover:border-success/50 hover:text-success disabled:opacity-30 disabled:cursor-not-allowed'
           }`}
         >
           ✓ 正常
         </button>
         <button
           onClick={() => onSet(panel.id, 'fault')}
-          disabled={isFault || saving}
-          className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
+          disabled={isFault || isOffline || saving}
+          className={`py-2 rounded-xl text-sm font-medium border transition-all ${
             isFault
               ? 'border-danger/50 bg-danger/15 text-danger cursor-default'
-              : 'border-danger/30 bg-transparent text-danger/60 hover:bg-danger/10 hover:border-danger/50 hover:text-danger'
+              : 'border-danger/30 bg-transparent text-danger/50 hover:bg-danger/10 hover:border-danger/50 hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed'
           }`}
         >
           ⚠ 异常
+        </button>
+      </div>
+
+      {/* ── 通断控制 ── */}
+      <p className="text-xs text-neutral-600 mb-1.5 uppercase tracking-wide">通断控制</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => onSet(panel.id, 'normal')}
+          disabled={!isOffline || saving}
+          className={`py-2 rounded-xl text-sm font-medium border transition-all ${
+            !isOffline
+              ? 'border-primary/40 bg-primary/10 text-primary cursor-default'
+              : 'border-primary/30 bg-transparent text-primary/50 hover:bg-primary/10 hover:border-primary/50 hover:text-primary'
+          }`}
+        >
+          ⚡ 开启
+        </button>
+        <button
+          onClick={() => onSet(panel.id, 'offline')}
+          disabled={isOffline || saving}
+          className={`py-2 rounded-xl text-sm font-medium border transition-all ${
+            isOffline
+              ? 'border-neutral-500/50 bg-neutral-800/50 text-neutral-400 cursor-default'
+              : 'border-neutral-600/40 bg-transparent text-neutral-500 hover:bg-neutral-800/40 hover:border-neutral-500 hover:text-neutral-300'
+          }`}
+        >
+          ○ 关断
         </button>
       </div>
     </motion.div>
@@ -264,7 +286,8 @@ function AdminDashboard({ onLogout }) {
     }
   }, [])
 
-  const faultCount = PV_PANELS.filter((p) => overrides[p.id] === 'fault').length
+  const faultCount   = PV_PANELS.filter((p) => overrides[p.id] === 'fault').length
+  const offlineCount = PV_PANELS.filter((p) => overrides[p.id] === 'offline').length
 
   return (
     <div className="min-h-screen dashboard-bg">
@@ -311,7 +334,12 @@ function AdminDashboard({ onLogout }) {
           <div className="flex items-center gap-3">
             {faultCount > 0 && (
               <span className="px-3 py-1 rounded-full text-xs font-medium border border-danger/40 bg-danger/10 text-danger">
-                {faultCount} 路告警中
+                {faultCount} 路告警
+              </span>
+            )}
+            {offlineCount > 0 && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium border border-neutral-600/40 bg-neutral-800/30 text-neutral-400">
+                {offlineCount} 路关断
               </span>
             )}
             <button
