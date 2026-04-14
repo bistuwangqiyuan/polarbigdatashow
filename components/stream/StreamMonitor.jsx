@@ -298,14 +298,14 @@ export default function StreamMonitor() {
       const j = await res.json()
       if (j?.ok && j?.report) {
         cs.report = j.report; cs.error = null
-        // Publish panel occlusion result to localStorage for devices page
+        // Publish panel occlusion result to DB API for devices page
         if (camId === 'cam1' && j.report.mode === 'panel_occlusion') {
           try {
-            localStorage.setItem('pvOcclusionReport', JSON.stringify({
-              panels: j.report.panels,
-              anyOccluded: j.report.anyOccluded,
-              timestamp: Date.now(),
-            }))
+            await fetch('/api/pv-state/occlusion', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ panels: j.report.panels }),
+            })
           } catch {}
         }
         if (camId === 'cam1' && recognitionFirstTime.current) {

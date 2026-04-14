@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const ADMIN_USER = 'admin'
 const ADMIN_PASS = '123456'
-const STORAGE_KEY = 'pvAdminOverrides'
 
 const PV_PANELS = [
   { id: 1, name: '光伏阵列-01' },
@@ -15,17 +14,34 @@ const PV_PANELS = [
   { id: 4, name: '光伏阵列-04' },
 ]
 
-function readOverrides() {
+// ── API helpers ───────────────────────────────────────────
+async function fetchOverrides() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    const res = await fetch('/api/pv-state', { cache: 'no-store' })
+    if (!res.ok) throw new Error('fetch failed')
+    const data = await res.json()
+    return data.overrides || {}
   } catch { return {} }
 }
 
-function writeOverrides(overrides) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...overrides, _ts: Date.now() }))
-  } catch {}
+async function setOverride(panelId, status) {
+  const res = await fetch('/api/pv-state/override', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ panelId, status }),
+  })
+  if (!res.ok) throw new Error('save failed')
+  return res.json()
+}
+
+async function resetAllOverrides() {
+  const res = await fetch('/api/pv-state/override', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resetAll: true }),
+  })
+  if (!res.ok) throw new Error('reset failed')
+  return res.json()
 }
 
 // ── Login Panel ──────────────────────────────────────────
@@ -116,9 +132,8 @@ function LoginPanel({ onLogin }) {
 }
 
 // ── Control Card ─────────────────────────────────────────
-function PanelControlCard({ panel, override, onSet }) {
+function PanelControlCard({ panel, override, onSet, saving }) {
   const isFault = override === 'fault'
-  const isNormal = override === 'normal' || override === undefined
 
   return (
     <motion.div
@@ -144,7 +159,6 @@ function PanelControlCard({ panel, override, onSet }) {
         </span>
       </div>
 
-      {/* Status indicator */}
       <div className={`flex items-center gap-2 mb-5 px-3 py-2 rounded-lg ${
         isFault ? 'bg-danger/10 border border-danger/20' : 'bg-success/5 border border-success/10'
       }`}>
@@ -154,11 +168,10 @@ function PanelControlCard({ panel, override, onSet }) {
         </span>
       </div>
 
-      {/* Control buttons */}
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onSet(panel.id, 'normal')}
-          disabled={!isFault}
+          disabled={!isFault || saving}
           className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
             !isFault
               ? 'border-success/50 bg-success/15 text-success cursor-default'
@@ -169,7 +182,7 @@ function PanelControlCard({ panel, override, onSet }) {
         </button>
         <button
           onClick={() => onSet(panel.id, 'fault')}
-          disabled={isFault}
+          disabled={isFault || saving}
           className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
             isFault
               ? 'border-danger/50 bg-danger/15 text-danger cursor-default'
@@ -187,35 +200,58 @@ function PanelControlCard({ panel, override, onSet }) {
 function AdminDashboard({ onLogout }) {
   const [overrides, setOverrides] = useState({})
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
+  // Initial load + poll every 5 s
   useEffect(() => {
-    setOverrides(readOverrides())
+    let cancelled = false
+    const load = async () => {
+      const data = await fetchOverrides()
+      if (!cancelled) {
+        setOverrides(data)
+        setLoading(false)
+      }
+    }
+    load()
+    const t = setInterval(load, 5000)
+    return () => { cancelled = true; clearInterval(t) }
   }, [])
 
-  const handleSet = useCallback((panelId, status) => {
-    setOverrides((prev) => {
-      const next = { ...prev, [panelId]: status }
-      writeOverrides(next)
-      return next
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSet = useCallback(async (panelId, status) => {
+    setSaving(true)
+    try {
+      await setOverride(panelId, status)
+      setOverrides((prev) => ({ ...prev, [panelId]: status }))
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
   }, [])
 
-  const resetAll = useCallback(() => {
-    const reset = {}
-    PV_PANELS.forEach((p) => { reset[p.id] = 'normal' })
-    writeOverrides(reset)
-    setOverrides(reset)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const resetAll = useCallback(async () => {
+    setSaving(true)
+    try {
+      await resetAllOverrides()
+      const reset = {}
+      PV_PANELS.forEach((p) => { reset[p.id] = 'normal' })
+      setOverrides(reset)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
   }, [])
 
   const faultCount = PV_PANELS.filter((p) => overrides[p.id] === 'fault').length
 
   return (
     <div className="min-h-screen dashboard-bg">
-      {/* Header */}
       <header className="border-b border-primary/30 backdrop-blur-sm sticky top-0 z-10">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -236,7 +272,7 @@ function AdminDashboard({ onLogout }) {
                   exit={{ opacity: 0 }}
                   className="text-xs text-success"
                 >
-                  ✓ 已同步至设备管理页面
+                  ✓ 已同步至数据库
                 </motion.span>
               )}
             </AnimatePresence>
@@ -252,13 +288,9 @@ function AdminDashboard({ onLogout }) {
       </header>
 
       <main className="p-6 max-w-4xl mx-auto">
-        {/* Summary bar */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-display text-white">光伏阵列控制台</h2>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              点击「异常」触发对应阵列报警，点击「正常」恢复；状态实时同步至设备管理页面
-            </p>
           </div>
           <div className="flex items-center gap-3">
             {faultCount > 0 && (
@@ -268,33 +300,29 @@ function AdminDashboard({ onLogout }) {
             )}
             <button
               onClick={resetAll}
-              className="px-4 py-2 rounded-xl text-xs text-neutral-400 border border-neutral-700 hover:border-primary/40 hover:text-primary transition-colors"
+              disabled={saving}
+              className="px-4 py-2 rounded-xl text-xs text-neutral-400 border border-neutral-700 hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
             >
               全部恢复正常
             </button>
           </div>
         </div>
 
-        {/* Panel cards — 一排四列，从右到左为1~4号（与摄像头视角一致） */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...PV_PANELS].reverse().map((panel) => (
-            <PanelControlCard
-              key={panel.id}
-              panel={panel}
-              override={overrides[panel.id]}
-              onSet={handleSet}
-            />
-          ))}
-        </div>
-
-        {/* Info box */}
-        <div className="mt-6 px-4 py-3 rounded-xl border border-neutral-800 bg-neutral-950/50">
-          <p className="text-xs text-neutral-500 leading-relaxed">
-            <span className="text-neutral-400 font-medium">说明：</span>
-            管理员手动触发「异常」后，对应光伏阵列将在设备管理页面显示"异常报警"状态。
-            正常运行时，系统根据实时发电量自动判断：发电量低于在线平均值 80% 且偏差大于 10W 时自动告警。
-          </p>
-        </div>
+        {loading ? (
+          <div className="text-center py-20 text-neutral-500 text-sm">加载中…</div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...PV_PANELS].reverse().map((panel) => (
+              <PanelControlCard
+                key={panel.id}
+                panel={panel}
+                override={overrides[panel.id]}
+                onSet={handleSet}
+                saving={saving}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )
@@ -305,7 +333,6 @@ export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
-    // Restore session within same browser tab session
     setLoggedIn(!!sessionStorage.getItem('pvAdminLoggedIn'))
   }, [])
 

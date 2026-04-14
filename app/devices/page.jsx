@@ -20,12 +20,15 @@ const deviceGradients = {
 
 const SOLAR_RATED_W = 200
 
-/** Read admin manual overrides from localStorage. */
-function readAdminOverrides() {
+/** Fetch latest PV state (overrides + occlusion) from the database API. */
+async function fetchPvState() {
   try {
-    const raw = localStorage.getItem('pvAdminOverrides')
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
+    const res = await fetch('/api/pv-state', { cache: 'no-store' })
+    if (!res.ok) throw new Error('fetch failed')
+    return await res.json()
+  } catch {
+    return { overrides: {}, occlusion: { panels: [], timestamp: 0 } }
+  }
 }
 
 /**
@@ -85,23 +88,12 @@ function mapSolarPowerFromWeather(devices, weatherKey, occlusionFactors = {}, oc
   })
 }
 
-/** Parse the latest pvOcclusionReport from localStorage (max 5 min stale). */
-function readOcclusionFromStorage() {
-  try {
-    const raw = localStorage.getItem('pvOcclusionReport')
-    if (!raw) return null
-    const r = JSON.parse(raw)
-    if (!r?.panels || (Date.now() - (r.timestamp || 0)) > 5 * 60 * 1000) return null
-    return r
-  } catch { return null }
-}
-
-/** Convert an occlusion report into factors and details maps keyed by device id. */
-function buildOcclusionMaps(report) {
+/** Convert an occlusion panels array into factors and details maps keyed by panel id. */
+function buildOcclusionMaps(panels) {
   const factors = {}
   const details = {}
-  if (!report?.panels) return { factors, details }
-  report.panels.forEach((p) => {
+  if (!Array.isArray(panels)) return { factors, details }
+  panels.forEach((p) => {
     if (p.occluded && typeof p.ratio === 'number' && p.ratio > 0) {
       factors[p.id] = Math.max(0, 1 - p.ratio)
       details[p.id] = { type: p.type || '异物', ratio: p.ratio }
@@ -274,9 +266,9 @@ export default function DevicesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [envTemp, setEnvTemp] = useState(18.5)
 
-  // Occlusion report from AI recognition (refreshed every 5s from localStorage)
-  const occlusionReportRef = useRef(null)
-  // Admin manual overrides (refreshed every 5s from localStorage)
+  // Latest occlusion panels from DB (refreshed every 5s)
+  const occlusionPanelsRef = useRef([])
+  // Admin manual overrides from DB (refreshed every 5s)
   const adminOverridesRef = useRef({})
 
   const bootRef = useRef(null)
@@ -328,8 +320,11 @@ export default function DevicesPage() {
       if (cancelled) return
       setWeatherKey(key)
       setDevices((prev) => {
-        const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
-        return applySolarAnomalyFlags(mapSolarPowerFromWeather(prev, key, factors, details), adminOverridesRef.current)
+        const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
+        return applySolarAnomalyFlags(
+          mapSolarPowerFromWeather(prev, key, factors, details),
+          adminOverridesRef.current
+        )
       })
     }
     const load = async () => {
@@ -354,16 +349,42 @@ export default function DevicesPage() {
     }
   }, [])
 
-  // Poll AI occlusion report + admin overrides from localStorage every 5 s
+  // Poll DB for admin overrides + AI occlusion every 5 s, apply immediately to devices
   useEffect(() => {
-    const read = () => {
-      occlusionReportRef.current = readOcclusionFromStorage()
-      adminOverridesRef.current = readAdminOverrides()
+    let cancelled = false
+    const poll = async () => {
+      const state = await fetchPvState()
+      if (cancelled) return
+      adminOverridesRef.current = state.overrides || {}
+      occlusionPanelsRef.current = state.occlusion?.panels || []
+      // Apply updated overrides + occlusion to current device state
+      setDevices((prev) => {
+        const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
+        return applySolarAnomalyFlags(
+          prev.map((d) => {
+            if (d.type !== '光伏组件' || d.status === 'offline') return d
+            const factor = factors[d.id] !== undefined ? factors[d.id] : 1.0
+            const h = getTianjinDecimalHour()
+            const jitter = ((d.id % 5) - 2) * 0.01
+            const basePower = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+            const power = parseFloat((basePower * factor).toFixed(1))
+            return {
+              ...d,
+              power,
+              load: Math.round((power / SOLAR_RATED_W) * 100),
+              efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
+              occlusionInfo: details[d.id] || null,
+            }
+          }),
+          adminOverridesRef.current
+        )
+      })
     }
-    read()
-    const t = setInterval(read, 5000)
-    return () => clearInterval(t)
-  }, [])
+    poll()
+    const t = setInterval(poll, 5000)
+    return () => { cancelled = true; clearInterval(t) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weatherKey])
 
   // 每 10 秒：按天津时刻与当前天气重算光伏出力，叠加 AI 识别遮挡因子；储能小幅波动
   useEffect(() => {
@@ -377,7 +398,7 @@ export default function DevicesPage() {
           basePowers[d.id] = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
         })
 
-        const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
+        const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
 
         const updated = prev.map((d) => {
           if (d.status === 'offline') return d
@@ -406,7 +427,7 @@ export default function DevicesPage() {
 
   const toggleDeviceStatus = (deviceId) => {
     setDevices((prevDevices) => {
-      const { factors, details } = buildOcclusionMaps(occlusionReportRef.current)
+      const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
       const next = prevDevices.map((device) => {
         if (device.id === deviceId && device.switchable) {
           const isOn = device.status === 'online' || device.status === 'warning'
