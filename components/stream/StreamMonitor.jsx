@@ -195,12 +195,18 @@ function AuthUpdatePanel({ cameras, onApply }) {
 //  Sample images for offline recognition test
 // ──────────────────────────────────────────────
 const SAMPLE_IMAGES = [
-  { label: 'sample.png（故障）',   src: '/image/fault-gallery/sample.png' },
-  { label: 'sample2.png（故障）',  src: '/image/fault-gallery/sample2.png' },
-  { label: 'sample3.png（故障）',  src: '/image/fault-gallery/sample3.png' },
-  { label: 'sample4.png（遮挡）',  src: '/image/fault-gallery/sample4.png' },
-  { label: 'sample7.png（热斑）',  src: '/image/fault-gallery/sample7.png' },
-  { label: 'normal-1.png（正常）', src: '/image/fault-gallery/normal-1.png' },
+  // Real field images — labelled occlusion scenarios
+  { label: '板1被遮挡',           src: '/image/fault-gallery/pv1-blocked.png' },
+  { label: '板1被遮挡②',         src: '/image/fault-gallery/pv1-blocked2.png' },
+  { label: '板2被遮挡',           src: '/image/fault-gallery/pv2-blocked.png' },
+  { label: '板3被遮挡',           src: '/image/fault-gallery/pv3-blocked.png' },
+  { label: '板4被遮挡',           src: '/image/fault-gallery/pv4-blocked.png' },
+  { label: '板4被遮挡②',         src: '/image/fault-gallery/pv4-blocked2.png' },
+  // Legacy samples
+  { label: 'normal-1（正常）',    src: '/image/fault-gallery/normal-1.png' },
+  { label: 'normal-2（正常）',    src: '/image/fault-gallery/normal-2.png' },
+  { label: 'sample4（遮挡）',     src: '/image/fault-gallery/sample4.png' },
+  { label: 'sample7（热斑）',     src: '/image/fault-gallery/sample7.png' },
 ]
 
 async function loadImageAsBase64(src) {
