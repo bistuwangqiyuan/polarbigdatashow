@@ -133,47 +133,63 @@ function LoginPanel({ onLogin }) {
 
 // ── Control Card ─────────────────────────────────────────
 function PanelControlCard({ panel, override, onSet, saving }) {
-  const isFault = override === 'fault'
+  const isFault   = override === 'fault'
+  const isOffline = override === 'offline'
+  const isNormal  = !isFault && !isOffline
+
+  const borderCls = isFault
+    ? 'border-danger/50 bg-danger/5 shadow-lg shadow-danger/10'
+    : isOffline
+      ? 'border-neutral-600/50 bg-neutral-900/60'
+      : 'border-white/10 bg-neutral-950/60'
+
+  const statusLabel = isFault ? '异常报警' : isOffline ? '已关断' : '正常运行'
+  const statusCls   = isFault
+    ? 'text-danger border-danger/40 bg-danger/10'
+    : isOffline
+      ? 'text-neutral-400 border-neutral-600/40 bg-neutral-800/30'
+      : 'text-success border-success/40 bg-success/10'
+
+  const dotCls  = isFault ? 'bg-danger animate-pulse' : isOffline ? 'bg-neutral-500' : 'bg-success'
+  const textCls = isFault ? 'text-danger/90' : isOffline ? 'text-neutral-400' : 'text-success/80'
+  const rowBg   = isFault
+    ? 'bg-danger/10 border border-danger/20'
+    : isOffline
+      ? 'bg-neutral-800/30 border border-neutral-700/30'
+      : 'bg-success/5 border border-success/10'
+  const rowText = isFault
+    ? '已触发异常报警，设备管理页面将显示告警'
+    : isOffline
+      ? '设备已在设备管理页面关断，点击「正常」可恢复运行'
+      : '运行正常，无告警'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border p-5 transition-all duration-300 ${
-        isFault
-          ? 'border-danger/50 bg-danger/5 shadow-lg shadow-danger/10'
-          : 'border-white/10 bg-neutral-950/60'
-      }`}
+      className={`rounded-2xl border p-5 transition-all duration-300 ${borderCls}`}
     >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-base font-display text-white">{panel.name}</h3>
           <p className="text-xs text-neutral-500 mt-0.5">光伏阵列 #{panel.id}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-          isFault
-            ? 'text-danger border-danger/40 bg-danger/10'
-            : 'text-success border-success/40 bg-success/10'
-        }`}>
-          {isFault ? '异常报警' : '正常运行'}
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusCls}`}>
+          {statusLabel}
         </span>
       </div>
 
-      <div className={`flex items-center gap-2 mb-5 px-3 py-2 rounded-lg ${
-        isFault ? 'bg-danger/10 border border-danger/20' : 'bg-success/5 border border-success/10'
-      }`}>
-        <span className={`w-2 h-2 rounded-full ${isFault ? 'bg-danger animate-pulse' : 'bg-success'}`} />
-        <span className={`text-xs ${isFault ? 'text-danger/90' : 'text-success/80'}`}>
-          {isFault ? '已触发异常报警，设备管理页面将显示告警' : '运行正常，无告警'}
-        </span>
+      <div className={`flex items-center gap-2 mb-5 px-3 py-2 rounded-lg ${rowBg}`}>
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotCls}`} />
+        <span className={`text-xs ${textCls}`}>{rowText}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => onSet(panel.id, 'normal')}
-          disabled={!isFault || saving}
+          disabled={isNormal || saving}
           className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
-            !isFault
+            isNormal
               ? 'border-success/50 bg-success/15 text-success cursor-default'
               : 'border-success/30 bg-transparent text-success/60 hover:bg-success/10 hover:border-success/50 hover:text-success'
           }`}

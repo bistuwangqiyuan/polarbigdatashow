@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request) {
   try {
     const { panelId, status } = await request.json()
-    if (!panelId || !['fault', 'normal'].includes(status)) {
+    if (!panelId || !['fault', 'normal', 'offline'].includes(status)) {
       return Response.json({ error: 'Invalid params' }, { status: 400 })
     }
 

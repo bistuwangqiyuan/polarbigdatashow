@@ -32,23 +32,41 @@ async function fetchPvState() {
 }
 
 /**
- * Apply anomaly flags:
- * - Admin override 'fault' → warning (regardless of power)
- * - Auto: power < 80% of avg AND deviation > 10W → warning
+ * Apply device statuses from admin overrides + auto-alarm logic.
+ *
+ * Priority:
+ *  1. Admin 'offline' override → offline (no matter what)
+ *  2. Admin 'fault'   override → warning
+ *  3. Admin 'normal'  override → online
+ *  4. Auto threshold (< 80% avg AND deviation > 10 W) → warning
+ *
+ * Works at any time of day (including when power = 0 at night).
  */
 function applySolarAnomalyFlags(devices, adminOverrides = {}) {
-  const onlineSolar = devices.filter((d) => d.type === '光伏组件' && d.power > 0)
-  if (onlineSolar.length === 0) return devices
-  const avgPower = onlineSolar.reduce((s, d) => s + d.power, 0) / onlineSolar.length
+  // Step 1: apply override statuses + zero-out power for offline panels
+  const withOverrides = devices.map((d) => {
+    if (d.type !== '光伏组件') return d
+    const ov = adminOverrides[d.id]
+    if (ov === 'offline') return { ...d, status: 'offline', power: 0, load: 0, efficiency: 0, adminFault: false }
+    if (ov === 'fault')   return { ...d, status: 'warning', adminFault: true }
+    if (ov === 'normal')  return { ...d, status: 'online',  adminFault: false }
+    return d
+  })
+
+  // Step 2: auto-alarm for panels without an admin override
+  const freeOnline = withOverrides.filter(
+    (d) => d.type === '光伏组件' && d.power > 0 && d.status !== 'offline' && !adminOverrides[d.id]
+  )
+  if (freeOnline.length === 0) return withOverrides
+
+  const avgPower = freeOnline.reduce((s, d) => s + d.power, 0) / freeOnline.length
   const threshold = avgPower * 0.8
-  return devices.map((d) => {
+
+  return withOverrides.map((d) => {
     if (d.type !== '光伏组件') return d
     if (d.status === 'offline') return d
-    if (d.power <= 0) return { ...d, status: d.status === 'warning' ? 'offline' : d.status }
-    // Admin manual override takes precedence
-    if (adminOverrides[d.id] === 'fault') return { ...d, status: 'warning', adminFault: true }
-    if (adminOverrides[d.id] === 'normal') return { ...d, status: 'online', adminFault: false }
-    // Auto threshold: below 80% AND deviation > 10W
+    if (adminOverrides[d.id]) return d          // already handled above
+    if (d.power <= 0) return d
     const deviation = avgPower - d.power
     const isAnomaly = d.power < threshold && deviation > 10
     return { ...d, status: isAnomaly ? 'warning' : 'online', adminFault: false }
@@ -357,27 +375,32 @@ export default function DevicesPage() {
       if (cancelled) return
       adminOverridesRef.current = state.overrides || {}
       occlusionPanelsRef.current = state.occlusion?.panels || []
-      // Apply updated overrides + occlusion to current device state
+
       setDevices((prev) => {
+        const overrides = adminOverridesRef.current
         const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
-        return applySolarAnomalyFlags(
-          prev.map((d) => {
-            if (d.type !== '光伏组件' || d.status === 'offline') return d
-            const factor = factors[d.id] !== undefined ? factors[d.id] : 1.0
-            const h = getTianjinDecimalHour()
-            const jitter = ((d.id % 5) - 2) * 0.01
-            const basePower = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
-            const power = parseFloat((basePower * factor).toFixed(1))
-            return {
-              ...d,
-              power,
-              load: Math.round((power / SOLAR_RATED_W) * 100),
-              efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
-              occlusionInfo: details[d.id] || null,
-            }
-          }),
-          adminOverridesRef.current
-        )
+        const h = getTianjinDecimalHour()
+
+        // Compute power for each panel, respecting offline overrides
+        const withPower = prev.map((d) => {
+          if (d.type !== '光伏组件') return d
+          // If admin said offline, zero out immediately (applySolarAnomalyFlags will confirm status)
+          if (overrides[d.id] === 'offline') {
+            return { ...d, power: 0, load: 0, efficiency: 0, occlusionInfo: null }
+          }
+          const jitter = ((d.id % 5) - 2) * 0.01
+          const factor = factors[d.id] !== undefined ? factors[d.id] : 1.0
+          const basePower = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
+          const power = parseFloat((basePower * factor).toFixed(1))
+          return {
+            ...d,
+            power,
+            load: Math.round((power / SOLAR_RATED_W) * 100),
+            efficiency: parseFloat(((power / SOLAR_RATED_W) * 100).toFixed(1)),
+            occlusionInfo: details[d.id] || null,
+          }
+        })
+        return applySolarAnomalyFlags(withPower, overrides)
       })
     }
     poll()
@@ -391,20 +414,17 @@ export default function DevicesPage() {
     const timer = setInterval(() => {
       setDevices((prev) => {
         const h = getTianjinDecimalHour()
-        const basePowers = {}
-        prev.forEach((d) => {
-          if (d.type !== '光伏组件' || d.status === 'offline') { basePowers[d.id] = 0; return }
-          const jitter = ((d.id % 5) - 2) * 0.01
-          basePowers[d.id] = computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter)
-        })
-
+        const overrides = adminOverridesRef.current
         const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
 
         const updated = prev.map((d) => {
-          if (d.status === 'offline') return d
           if (d.type === '光伏组件') {
+            // Respect offline override — keep power at 0
+            if (overrides[d.id] === 'offline') return d
+            if (d.status === 'offline') return d
+            const jitter = ((d.id % 5) - 2) * 0.01
             const factor = factors[d.id] !== undefined ? factors[d.id] : 1.0
-            const power = parseFloat((basePowers[d.id] * factor).toFixed(1))
+            const power = parseFloat((computeArrayOutputW(h, weatherKey, SOLAR_RATED_W, jitter) * factor).toFixed(1))
             return {
               ...d,
               power,
@@ -419,40 +439,48 @@ export default function DevicesPage() {
           }
           return d
         })
-        return applySolarAnomalyFlags(updated, adminOverridesRef.current)
+        return applySolarAnomalyFlags(updated, overrides)
       })
     }, 10000)
     return () => clearInterval(timer)
   }, [weatherKey])
 
   const toggleDeviceStatus = (deviceId) => {
+    let dbStatus = null
+
     setDevices((prevDevices) => {
+      const overrides = adminOverridesRef.current
       const { factors, details } = buildOcclusionMaps(occlusionPanelsRef.current)
       const next = prevDevices.map((device) => {
-        if (device.id === deviceId && device.switchable) {
-          const isOn = device.status === 'online' || device.status === 'warning'
-          const newStatus = isOn ? 'offline' : 'online'
-          const jitter = ((device.id % 5) - 2) * 0.01
-          const basePower = newStatus === 'online'
-            ? computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
-            : 0
-          const factor = factors[device.id] !== undefined ? factors[device.id] : 1.0
-          const newPower = newStatus === 'online' ? parseFloat((basePower * factor).toFixed(1)) : 0
-          const newLoad = newStatus === 'online' ? Math.round((newPower / SOLAR_RATED_W) * 100) : 0
-          const newEff = newStatus === 'online' ? parseFloat(((newPower / SOLAR_RATED_W) * 100).toFixed(1)) : 0
-          return {
-            ...device,
-            status: newStatus,
-            power: newPower,
-            efficiency: newEff,
-            load: newLoad,
-            occlusionInfo: newStatus === 'online' ? (details[device.id] || null) : null,
-          }
+        if (device.id !== deviceId || !device.switchable) return device
+        const isOn = device.status === 'online' || device.status === 'warning'
+        dbStatus = isOn ? 'offline' : 'normal'
+        const jitter = ((device.id % 5) - 2) * 0.01
+        const basePower = !isOn
+          ? computeArrayOutputW(getTianjinDecimalHour(), weatherKey, SOLAR_RATED_W, jitter)
+          : 0
+        const factor = factors[device.id] !== undefined ? factors[device.id] : 1.0
+        const newPower = !isOn ? parseFloat((basePower * factor).toFixed(1)) : 0
+        return {
+          ...device,
+          status: isOn ? 'offline' : 'online',
+          power: newPower,
+          efficiency: !isOn ? parseFloat(((newPower / SOLAR_RATED_W) * 100).toFixed(1)) : 0,
+          load: !isOn ? Math.round((newPower / SOLAR_RATED_W) * 100) : 0,
+          occlusionInfo: !isOn ? (details[device.id] || null) : null,
         }
-        return device
       })
-      return applySolarAnomalyFlags(next, adminOverridesRef.current)
+      return applySolarAnomalyFlags(next, overrides)
     })
+
+    // Persist the new on/off state to the database
+    if (dbStatus) {
+      fetch('/api/pv-state/override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ panelId: deviceId, status: dbStatus }),
+      }).catch(() => {})
+    }
   }
 
   // 告警面板数据
